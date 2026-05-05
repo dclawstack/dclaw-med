@@ -67,3 +67,8 @@ cloudnativepg:
     size: 10Gi
   database: dclaw_med
   username: app
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
