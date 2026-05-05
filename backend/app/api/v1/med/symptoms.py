@@ -3,7 +3,7 @@
 from collections.abc import Sequence
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -33,19 +33,14 @@ async def list_symptoms(
     patient_id: UUID | None = None,
     page: int = 1,
     page_size: int = 20,
-    db: AsyncSession = ...,  # type: ignore[assignment]
+    db: AsyncSession = Depends(get_db),
 ) -> Sequence[Symptom]:
     """List symptoms with optional patient filter."""
-    db_gen = get_db()
-    session = await db_gen.__anext__()
-    try:
-        stmt = select(Symptom).offset((page - 1) * page_size).limit(page_size)
-        if patient_id:
-            stmt = stmt.where(Symptom.patient_id == patient_id)
-        result = await session.execute(stmt)
-        return result.scalars().all()
-    finally:
-        await session.close()
+    stmt = select(Symptom).offset((page - 1) * page_size).limit(page_size)
+    if patient_id:
+        stmt = stmt.where(Symptom.patient_id == patient_id)
+    result = await db.execute(stmt)
+    return result.scalars().all()
 
 
 @router.post("", response_model=SymptomResponse, status_code=status.HTTP_201_CREATED)
