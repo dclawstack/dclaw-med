@@ -1,0 +1,25 @@
+{
+  "app_id": "med",
+  "name": "DClaw Med",
+  "description": "Clinical intelligence platform with symptom analysis, clinical note generation, ICD-10 lookup, and drug interaction checking.",
+  "tagline": "Clinical intelligence at your fingertips",
+  "version": "0.1.0",
+  "category": "healthcare",
+  "icon": "/icons/med.svg",
+  "color": "#EF4444",
+  "entrypoint": "/",
+  "api_base": "https://med.dclawstack.io",
+  "permissions": [
+    "read:patients",
+    "write:patients",
+    "read:symptoms",
+    "write:symptoms",
+    "read:diagnoses",
+    "read:prescriptions",
+    "write:prescriptions",
+    "read:notes",
+    "write:notes"
+  ],
+  "requires_auth": true,
+  "billing_plan": "free"
+}
