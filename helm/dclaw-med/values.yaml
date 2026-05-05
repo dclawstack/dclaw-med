@@ -22,7 +22,7 @@ service:
     targetPort: 3004
 
 ingress:
-  enabled: true
+  enabled: false
   className: nginx
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
@@ -60,7 +60,7 @@ resources:
       cpu: "100m"
 
 cloudnativepg:
-  enabled: true
+  enabled: false
   name: dclaw-med-db
   instances: 1
   storage:
