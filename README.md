@@ -80,6 +80,10 @@ docker compose up -d
 helm upgrade --install dclaw-med ./helm/dclaw-med   --namespace dclaw --create-namespace
 ```
 
+## Code Manager
+
+Allen Antony
+
 ## DClaw Stack
 
 Part of the [DClaw Stack](https://github.com/dclawstack) — an AI-native application platform with 65+ products.
