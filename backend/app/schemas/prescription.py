@@ -25,6 +25,19 @@ class PrescriptionCreate(PrescriptionBase):
     patient_id: UUID
 
 
+class PrescriptionUpdate(BaseModel):
+    """Schema for updating a prescription."""
+
+    medication_name: str | None = Field(default=None, min_length=1, max_length=255)
+    dosage: str | None = Field(default=None, min_length=1, max_length=100)
+    frequency: str | None = Field(default=None, min_length=1, max_length=100)
+    route: str | None = Field(default=None, min_length=1, max_length=50)
+    start_date: date | None = None
+    end_date: date | None = None
+    instructions: str | None = None
+    status: str | None = Field(default=None, pattern="^(active|completed|discontinued)$")
+
+
 class PrescriptionResponse(PrescriptionBase):
     """Prescription response schema."""
 

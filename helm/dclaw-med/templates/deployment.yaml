@@ -30,10 +30,14 @@ spec:
               name: http
           env:
             - name: DATABASE_URL
+{{- if .Values.cloudnativepg.enabled }}
               valueFrom:
                 secretKeyRef:
                   name: {{ include "dclaw-med.fullname" . }}-db-credentials
                   key: uri
+{{- else }}
+              value: "{{ .Values.backend.database_url }}"
+{{- end }}
             - name: API_HOST
               value: "0.0.0.0"
             - name: API_PORT

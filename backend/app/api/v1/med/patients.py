@@ -1,72 +1,62 @@
 """Patient CRUD endpoints."""
 
-from collections.abc import Sequence
-from datetime import datetime, timezone
-from uuid import UUID, uuid4
+from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.models.patient import Patient
+from app.repositories.patient_repo import PatientRepository
 from app.schemas.patient import PatientCreate, PatientResponse, PatientUpdate
 
 router = APIRouter()
 
-# In-memory store for mock
-MOCK_PATIENTS: dict[UUID, dict] = {}
 
-
-def _to_response(p: dict) -> PatientResponse:
-    """Convert dict to PatientResponse."""
-    return PatientResponse(
-        id=p["id"],
-        name=p["name"],
-        date_of_birth=p["date_of_birth"],
-        gender=p["gender"],
-        medical_record_number=p["medical_record_number"],
-        contact_info=p.get("contact_info"),
-        created_at=p["created_at"],
-        updated_at=p["updated_at"],
-    )
+def _to_response(patient) -> PatientResponse:
+    """Convert Patient ORM to response schema."""
+    return PatientResponse.model_validate(patient)
 
 
 @router.get("", response_model=list[PatientResponse])
 async def list_patients(
     page: int = 1,
     page_size: int = 20,
+    db: AsyncSession = Depends(get_db),
 ) -> list[PatientResponse]:
-    """List all patients."""
-    all_patients = list(MOCK_PATIENTS.values())
-    start = (page - 1) * page_size
-    end = start + page_size
-    return [_to_response(p) for p in all_patients[start:end]]
+    """List all patients with pagination."""
+    repo = PatientRepository(db)
+    patients, _total = await repo.list_patients(page=page, page_size=page_size)
+    return [_to_response(p) for p in patients]
 
 
 @router.post("", response_model=PatientResponse, status_code=status.HTTP_201_CREATED)
-async def create_patient(data: PatientCreate) -> PatientResponse:
+async def create_patient(
+    data: PatientCreate,
+    db: AsyncSession = Depends(get_db),
+) -> PatientResponse:
     """Create a new patient."""
-    now = datetime.now(timezone.utc).isoformat()
-    patient_id = uuid4()
-    record = {
-        "id": patient_id,
-        "name": data.name,
-        "date_of_birth": data.date_of_birth.isoformat() if hasattr(data.date_of_birth, "isoformat") else str(data.date_of_birth),
-        "gender": data.gender,
-        "medical_record_number": data.medical_record_number,
-        "contact_info": data.contact_info,
-        "created_at": now,
-        "updated_at": now,
-    }
-    MOCK_PATIENTS[patient_id] = record
-    return _to_response(record)
+    repo = PatientRepository(db)
+
+    # Check for duplicate MRN
+    existing = await repo.get_by_mrn(data.medical_record_number)
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Medical record number already exists",
+        )
+
+    patient = await repo.create(data)
+    return _to_response(patient)
 
 
 @router.get("/{patient_id}", response_model=PatientResponse)
-async def get_patient(patient_id: UUID) -> PatientResponse:
+async def get_patient(
+    patient_id: UUID,
+    db: AsyncSession = Depends(get_db),
+) -> PatientResponse:
     """Get a patient by ID."""
-    patient = MOCK_PATIENTS.get(patient_id)
+    repo = PatientRepository(db)
+    patient = await repo.get_by_id(patient_id)
     if not patient:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -79,58 +69,124 @@ async def get_patient(patient_id: UUID) -> PatientResponse:
 async def update_patient(
     patient_id: UUID,
     data: PatientUpdate,
+    db: AsyncSession = Depends(get_db),
 ) -> PatientResponse:
     """Update a patient."""
-    patient = MOCK_PATIENTS.get(patient_id)
+    repo = PatientRepository(db)
+    patient = await repo.get_by_id(patient_id)
     if not patient:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Patient not found",
         )
-    if data.name is not None:
-        patient["name"] = data.name
-    if data.date_of_birth is not None:
-        patient["date_of_birth"] = str(data.date_of_birth)
-    if data.gender is not None:
-        patient["gender"] = data.gender
-    if data.contact_info is not None:
-        patient["contact_info"] = data.contact_info
-    patient["updated_at"] = datetime.now(timezone.utc).isoformat()
+
+    # Check MRN uniqueness if being updated
+    if data.medical_record_number is not None:
+        existing = await repo.get_by_mrn(data.medical_record_number)
+        if existing and existing.id != patient_id:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Medical record number already exists",
+            )
+
+    patient = await repo.update(patient, data)
     return _to_response(patient)
 
 
 @router.delete("/{patient_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_patient(patient_id: UUID) -> None:
+async def delete_patient(
+    patient_id: UUID,
+    db: AsyncSession = Depends(get_db),
+) -> None:
     """Delete a patient."""
-    if patient_id not in MOCK_PATIENTS:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Patient not found",
-        )
-    del MOCK_PATIENTS[patient_id]
-
-
-@router.get("/{patient_id}/history")
-async def get_patient_history(patient_id: UUID) -> dict:
-    """Get patient medical history timeline."""
-    patient = MOCK_PATIENTS.get(patient_id)
+    repo = PatientRepository(db)
+    patient = await repo.get_by_id(patient_id)
     if not patient:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Patient not found",
         )
+    await repo.delete(patient)
+
+
+@router.get("/{patient_id}/history")
+async def get_patient_history(
+    patient_id: UUID,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Get patient medical history timeline."""
+    repo = PatientRepository(db)
+    patient = await repo.get_by_id(patient_id)
+    if not patient:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Patient not found",
+        )
+
+    timeline = [
+        {
+            "type": "registration",
+            "date": patient.created_at.isoformat(),
+            "description": f"Patient {patient.name} registered",
+        },
+    ]
+
+    for note in patient.clinical_notes:
+        timeline.append({
+            "type": "note",
+            "date": note.created_at.isoformat(),
+            "description": f"{note.note_type.capitalize()} note created",
+        })
+
+    for diagnosis in patient.diagnoses:
+        timeline.append({
+            "type": "diagnosis",
+            "date": diagnosis.created_at.isoformat(),
+            "description": f"Diagnosed with {diagnosis.name}",
+        })
+
+    # Sort timeline by date
+    timeline.sort(key=lambda x: x["date"])
+
     return {
-        "patient_id": patient_id,
+        "patient_id": str(patient_id),
         "patient": _to_response(patient).model_dump(),
-        "timeline": [
+        "timeline": timeline,
+        "symptoms": [
             {
-                "type": "registration",
-                "date": patient["created_at"],
-                "description": f"Patient {patient['name']} registered",
-            },
+                "id": str(s.id),
+                "description": s.description,
+                "severity": s.severity,
+                "onset_date": s.onset_date.isoformat() if s.onset_date else None,
+            }
+            for s in patient.symptoms
         ],
-        "symptoms": [],
-        "diagnoses": [],
-        "prescriptions": [],
-        "clinical_notes": [],
+        "diagnoses": [
+            {
+                "id": str(d.id),
+                "name": d.name,
+                "icd10_code": d.icd10_code,
+                "confidence": d.confidence,
+            }
+            for d in patient.diagnoses
+        ],
+        "prescriptions": [
+            {
+                "id": str(p.id),
+                "medication_name": p.medication_name,
+                "dosage": p.dosage,
+                "status": p.status,
+            }
+            for p in patient.prescriptions
+        ],
+        "clinical_notes": [
+            {
+                "id": str(n.id),
+                "note_type": n.note_type,
+                "content": n.content,
+                "generated_by": n.generated_by,
+                "created_at": n.created_at.isoformat(),
+            }
+            for n in patient.clinical_notes
+        ],
     }

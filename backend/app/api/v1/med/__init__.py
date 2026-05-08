@@ -2,10 +2,22 @@
 
 from fastapi import APIRouter
 
-from app.api.v1.med import drugs, icd10, notes, patients, symptoms
+from app.api.v1.med import (
+    diagnoses,
+    drugs,
+    icd10,
+    notes,
+    patients,
+    prescriptions,
+    symptoms,
+)
 
 router = APIRouter()
 router.include_router(symptoms.router, prefix="/symptoms", tags=["Symptoms"])
+router.include_router(diagnoses.router, prefix="/diagnoses", tags=["Diagnoses"])
+router.include_router(
+    prescriptions.router, prefix="/prescriptions", tags=["Prescriptions"]
+)
 router.include_router(notes.router, prefix="/notes", tags=["Clinical Notes"])
 router.include_router(icd10.router, prefix="/icd10", tags=["ICD-10"])
 router.include_router(drugs.router, prefix="/drug", tags=["Drug Interactions"])

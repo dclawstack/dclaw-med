@@ -22,6 +22,16 @@ class SymptomCreate(SymptomBase):
     patient_id: UUID
 
 
+class SymptomUpdate(BaseModel):
+    """Schema for updating a symptom."""
+
+    description: str | None = None
+    onset_date: datetime | None = None
+    severity: int | None = Field(default=None, ge=1, le=10)
+    body_system: str | None = None
+    notes: str | None = None
+
+
 class SymptomResponse(SymptomBase):
     """Symptom response schema."""
 

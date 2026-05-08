@@ -38,7 +38,8 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Database, Plus, Trash2, Users } from "lucide-react";
+import Link from "next/link";
+import { Database, Plus, Trash2, Users, Eye } from "lucide-react";
 
 export default function PatientsPage() {
   const [patients, setPatients] = useState<PatientResponse[]>([]);
@@ -177,9 +178,14 @@ export default function PatientsPage() {
                   <TableCell className="capitalize">{p.gender}</TableCell>
                   <TableCell>{p.date_of_birth}</TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(p.id)}>
-                      <Trash2 className="w-4 h-4 text-destructive" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Link href={`/patients/${p.id}`}>
+                        <Button variant="ghost" size="icon"><Eye className="w-4 h-4" /></Button>
+                      </Link>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(p.id)}>
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

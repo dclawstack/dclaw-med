@@ -10,6 +10,7 @@ import {
   Database,
   FileText,
   Home,
+  Pill,
   Search,
   Settings,
   Stethoscope,
@@ -17,9 +18,11 @@ import {
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: Home },
-  { href: "/symptoms", label: "Symptoms", icon: Stethoscope },
-  { href: "/notes", label: "Clinical Notes", icon: ClipboardList },
   { href: "/patients", label: "Patients", icon: Database },
+  { href: "/symptoms", label: "Symptoms", icon: Stethoscope },
+  { href: "/diagnoses", label: "Diagnoses", icon: ClipboardList },
+  { href: "/prescriptions", label: "Prescriptions", icon: Pill },
+  { href: "/notes", label: "Clinical Notes", icon: FileText },
   { href: "/icd10", label: "ICD-10", icon: Search },
 ];
 

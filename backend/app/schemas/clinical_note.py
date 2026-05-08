@@ -23,6 +23,14 @@ class ClinicalNoteCreate(ClinicalNoteBase):
     patient_id: UUID
 
 
+class ClinicalNoteUpdate(BaseModel):
+    """Schema for updating a clinical note."""
+
+    note_type: str | None = Field(default=None, pattern="^(progress|admission|discharge|procedure)$")
+    content: str | None = Field(default=None, min_length=1)
+    template_used: str | None = None
+
+
 class ClinicalNoteResponse(ClinicalNoteBase):
     """Clinical note response schema."""
 

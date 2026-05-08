@@ -1,23 +1,27 @@
 """Clinical note endpoints."""
 
-from collections.abc import Sequence
 from uuid import UUID
 
-from fastapi import APIRouter, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.models.clinical_note import ClinicalNote
+from app.repositories.clinical_note_repo import ClinicalNoteRepository
 from app.schemas.clinical_note import (
     ClinicalNoteCreate,
     ClinicalNoteResponse,
+    ClinicalNoteUpdate,
     NoteGenerateRequest,
     NoteGenerateResponse,
 )
 from app.services.note_generator import generate_note
 
 router = APIRouter()
+
+
+def _to_response(note) -> ClinicalNoteResponse:
+    """Convert ClinicalNote ORM to response schema."""
+    return ClinicalNoteResponse.model_validate(note)
 
 
 @router.post("/generate", response_model=NoteGenerateResponse)
@@ -33,32 +37,69 @@ async def list_notes(
     patient_id: UUID | None = None,
     page: int = 1,
     page_size: int = 20,
-) -> Sequence[ClinicalNote]:
+    db: AsyncSession = Depends(get_db),
+) -> list[ClinicalNoteResponse]:
     """List clinical notes with optional patient filter."""
-    db_gen = get_db()
-    session = await db_gen.__anext__()
-    try:
-        stmt = select(ClinicalNote).offset((page - 1) * page_size).limit(page_size)
-        if patient_id:
-            stmt = stmt.where(ClinicalNote.patient_id == patient_id)
-        result = await session.execute(stmt)
-        return result.scalars().all()
-    finally:
-        await session.close()
+    repo = ClinicalNoteRepository(db)
+    notes, _ = await repo.list_notes(
+        patient_id=patient_id, page=page, page_size=page_size
+    )
+    return [_to_response(n) for n in notes]
 
 
 @router.post("", response_model=ClinicalNoteResponse, status_code=status.HTTP_201_CREATED)
-async def create_note(data: ClinicalNoteCreate) -> ClinicalNoteResponse:
-    """Create a manual clinical note (mock)."""
-    from datetime import datetime, timezone
+async def create_note(
+    data: ClinicalNoteCreate,
+    db: AsyncSession = Depends(get_db),
+) -> ClinicalNoteResponse:
+    """Create a clinical note."""
+    repo = ClinicalNoteRepository(db)
+    note = await repo.create(data)
+    return _to_response(note)
 
-    return ClinicalNoteResponse(
-        id=UUID(int=0),
-        patient_id=data.patient_id,
-        note_type=data.note_type,
-        content=data.content,
-        generated_by=data.generated_by,
-        template_used=data.template_used,
-        created_at=datetime.now(timezone.utc).isoformat(),
-        updated_at=datetime.now(timezone.utc).isoformat(),
-    )
+
+@router.get("/{note_id}", response_model=ClinicalNoteResponse)
+async def get_note(
+    note_id: UUID,
+    db: AsyncSession = Depends(get_db),
+) -> ClinicalNoteResponse:
+    """Get a clinical note by ID."""
+    repo = ClinicalNoteRepository(db)
+    note = await repo.get_by_id(note_id)
+    if not note:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Note not found"
+        )
+    return _to_response(note)
+
+
+@router.put("/{note_id}", response_model=ClinicalNoteResponse)
+async def update_note(
+    note_id: UUID,
+    data: ClinicalNoteUpdate,
+    db: AsyncSession = Depends(get_db),
+) -> ClinicalNoteResponse:
+    """Update a clinical note."""
+    repo = ClinicalNoteRepository(db)
+    note = await repo.get_by_id(note_id)
+    if not note:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Note not found"
+        )
+    note = await repo.update(note, data)
+    return _to_response(note)
+
+
+@router.delete("/{note_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_note(
+    note_id: UUID,
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    """Delete a clinical note."""
+    repo = ClinicalNoteRepository(db)
+    note = await repo.get_by_id(note_id)
+    if not note:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Note not found"
+        )
+    await repo.delete(note)

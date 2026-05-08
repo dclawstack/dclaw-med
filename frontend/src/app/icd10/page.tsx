@@ -18,7 +18,7 @@ import {
 import { toast } from "sonner";
 import { Search, Database } from "lucide-react";
 
-const MOCK_CODES: ICD10Code[] = [
+const DEMO_CODES: ICD10Code[] = [
   { code: "I10", description: "Essential (primary) hypertension", category: "Cardiovascular", billable: true },
   { code: "E11.9", description: "Type 2 diabetes mellitus without complications", category: "Endocrine", billable: true },
   { code: "J06.9", description: "Acute upper respiratory infection, unspecified", category: "Respiratory", billable: true },
@@ -42,21 +42,10 @@ export default function ICD10Page() {
     setSearched(true);
     try {
       const res = await lookupICD10({ query, max_results: 20 });
-      if (res.results.length > 0) {
-        setResults(res.results);
-      } else {
-        // Fallback to mock client-side filter
-        const q = query.toLowerCase();
-        setResults(MOCK_CODES.filter(
-          (c) => c.code.toLowerCase().includes(q) || c.description.toLowerCase().includes(q) || c.category.toLowerCase().includes(q)
-        ));
-      }
-    } catch {
-      // Fallback to mock
-      const q = query.toLowerCase();
-      setResults(MOCK_CODES.filter(
-        (c) => c.code.toLowerCase().includes(q) || c.description.toLowerCase().includes(q)
-      ));
+      setResults(res.results);
+    } catch (err) {
+      toast.error("Search failed", { description: err instanceof Error ? err.message : "Backend unavailable" });
+      setResults([]);
     } finally {
       setLoading(false);
     }
@@ -123,7 +112,7 @@ export default function ICD10Page() {
 
       {!searched && (
         <Card>
-          <CardHeader><CardTitle className="text-sm">Common Codes</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-sm">Demo Codes (Offline)</CardTitle></CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
@@ -134,7 +123,7 @@ export default function ICD10Page() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {MOCK_CODES.map((code) => (
+                {DEMO_CODES.map((code) => (
                   <TableRow key={code.code}>
                     <TableCell className="font-mono font-medium">{code.code}</TableCell>
                     <TableCell>{code.description}</TableCell>

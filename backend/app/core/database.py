@@ -1,16 +1,15 @@
 """Async database engine and session factory."""
 
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import declarative_base
 
 from app.core.config import settings
+from app.models.base import Base
 
 engine = create_async_engine(
     settings.database_url,
     echo=settings.app_env == "dev",
     pool_pre_ping=True,
 )
-Base = declarative_base()
 
 
 async def get_db() -> AsyncSession:

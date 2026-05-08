@@ -59,6 +59,9 @@ resources:
       memory: "128Mi"
       cpu: "100m"
 
+backend:
+  database_url: "postgresql+asyncpg://app:app@localhost:5432/dclaw_med"
+
 cloudnativepg:
   enabled: false
   name: dclaw-med-db

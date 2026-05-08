@@ -8,7 +8,10 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import Link from "next/link";
-import { listPatients, PatientResponse } from "@/lib/api";
+import {
+  listPatients, listPrescriptions, listNotes, listDiagnoses,
+  PatientResponse, PrescriptionResponse, ClinicalNoteResponse, DiagnosisResponse,
+} from "@/lib/api";
 import {
   Activity,
   ArrowRight,
@@ -22,14 +25,27 @@ import {
 
 export default function DashboardPage() {
   const [patients, setPatients] = useState<PatientResponse[]>([]);
+  const [prescriptions, setPrescriptions] = useState<PrescriptionResponse[]>([]);
+  const [notes, setNotes] = useState<ClinicalNoteResponse[]>([]);
+  const [diagnoses, setDiagnoses] = useState<DiagnosisResponse[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    listPatients()
-      .then(setPatients)
-      .catch((err) => toast.error("Failed to load patients", { description: err.message }))
-      .finally(() => setLoading(false));
+    Promise.all([
+      listPatients().catch((err) => { toast.error("Failed to load patients", { description: err.message }); return []; }),
+      listPrescriptions().catch((err) => { toast.error("Failed to load prescriptions", { description: err.message }); return []; }),
+      listNotes().catch((err) => { toast.error("Failed to load notes", { description: err.message }); return []; }),
+      listDiagnoses().catch((err) => { toast.error("Failed to load diagnoses", { description: err.message }); return []; }),
+    ]).then(([p, rx, n, dx]) => {
+      setPatients(p);
+      setPrescriptions(rx);
+      setNotes(n);
+      setDiagnoses(dx);
+    }).finally(() => setLoading(false));
   }, []);
+
+  const activePrescriptions = prescriptions.filter((r) => r.status === "active").length;
+  const pendingDiagnoses = diagnoses.filter((d) => d.status === "provisional").length;
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
@@ -62,7 +78,7 @@ export default function DashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">—</div>
+            <div className="text-3xl font-bold">{loading ? <Skeleton className="h-8 w-12" /> : activePrescriptions}</div>
             <p className="text-xs text-muted-foreground mt-1">Active medications</p>
           </CardContent>
         </Card>
@@ -74,7 +90,7 @@ export default function DashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">—</div>
+            <div className="text-3xl font-bold">{loading ? <Skeleton className="h-8 w-12" /> : notes.length}</div>
             <p className="text-xs text-muted-foreground mt-1">Clinical notes</p>
           </CardContent>
         </Card>
@@ -86,7 +102,7 @@ export default function DashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">—</div>
+            <div className="text-3xl font-bold">{loading ? <Skeleton className="h-8 w-12" /> : pendingDiagnoses}</div>
             <p className="text-xs text-muted-foreground mt-1">Pending review</p>
           </CardContent>
         </Card>
@@ -134,7 +150,7 @@ export default function DashboardPage() {
                     <span className="text-sm font-medium">{p.name}</span>
                     <span className="text-xs text-muted-foreground">{p.gender} · {p.date_of_birth}</span>
                   </div>
-                  <Link href={`/patients`}>
+                  <Link href={`/patients/${p.id}`}>
                     <Button variant="ghost" size="sm">View</Button>
                   </Link>
                 </div>
