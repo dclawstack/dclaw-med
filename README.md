@@ -82,7 +82,7 @@ helm upgrade --install dclaw-med ./helm/dclaw-med   --namespace dclaw --create-n
 
 ## Code Manager
 
-Allen Antony ([@allenantony007](https://github.com/allenantony007))
+Allen Antony
 
 ## DClaw Stack
 
