@@ -112,6 +112,7 @@ dclaw-med/
 
 1. All models MUST inherit from `Base` in `app.models.base`
 2. All models MUST use `Mapped[...]` and `mapped_column()`
+3. **Never use `default_factory=` in `mapped_column()`** — use `default=` instead
 3. Relationships MUST specify `lazy="selectin"` for async safety
 4. All new tables MUST get an alembic migration
 5. `ondelete="CASCADE"` for child tables (symptoms, diagnoses, prescriptions, notes)
