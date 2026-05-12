@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.auth import get_current_user
+from app.core.auth import get_current_user, require_role
 from app.core.database import get_db
 from app.core.security import create_access_token, verify_password
 from app.models.user import User
@@ -14,12 +14,17 @@ from app.schemas.user import ProviderResponse, Token, UserCreate, UserResponse
 router = APIRouter()
 
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register",
+    response_model=UserResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def register(
     data: UserCreate,
     db: AsyncSession = Depends(get_db),
+    _current: User = Depends(require_role("admin")),
 ) -> UserResponse:
-    """Register a new user. Open in v1.2 scaffolding; admin-only enforcement is deferred."""
+    """Create a new user. Admin-only — for bootstrap, see `scripts/seed_admin.py`."""
     repo = UserRepository(db)
     existing = await repo.get_by_email(data.email)
     if existing:

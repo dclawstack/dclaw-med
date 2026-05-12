@@ -1,10 +1,12 @@
 """Application configuration using Pydantic Settings."""
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     """DClaw Med application settings."""
+
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     app_env: str = "dev"
     log_level: str = "INFO"
@@ -26,10 +28,6 @@ class Settings(BaseSettings):
     def cors_origin_list(self) -> list[str]:
         """Parse comma-separated CORS origins into a list."""
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
-
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
 
 
 settings = Settings()
