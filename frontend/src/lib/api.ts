@@ -399,3 +399,37 @@ export function lookupICD10(
     body: JSON.stringify({ query: req.query, max_results: req.max_results ?? 10 }),
   });
 }
+
+// ---------- Audit Logs (admin only) ----------
+
+export interface AuditLog {
+  id: string;
+  user_id: string;
+  action: string;
+  entity_type: string;
+  entity_id: string | null;
+  old_value: Record<string, unknown> | null;
+  new_value: Record<string, unknown> | null;
+  timestamp: string;
+}
+
+export interface AuditLogFilters {
+  user_id?: string;
+  entity_type?: string;
+  action?: string;
+  page?: number;
+  page_size?: number;
+}
+
+export function listAuditLogs(filters: AuditLogFilters = {}): Promise<AuditLog[]> {
+  const q = new URLSearchParams();
+  if (filters.user_id) q.set("user_id", filters.user_id);
+  if (filters.entity_type) q.set("entity_type", filters.entity_type);
+  if (filters.action) q.set("action", filters.action);
+  if (filters.page) q.set("page", String(filters.page));
+  if (filters.page_size) q.set("page_size", String(filters.page_size));
+  const qs = q.toString();
+  return request<AuditLog[]>(
+    `${API_BASE}/api/v1/audit${qs ? `?${qs}` : ""}`,
+  );
+}

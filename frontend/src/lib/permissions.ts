@@ -19,4 +19,5 @@ export const can = {
   writePrescription: (u: RoleHolder) => hasRole(u, ["admin", "doctor"]),
   writeNote: (u: RoleHolder) => hasRole(u, ["admin", "doctor", "nurse"]),
   useClinicalTool: (u: RoleHolder) => hasRole(u, ["admin", "doctor", "nurse"]),
+  viewAudit: (u: RoleHolder) => hasRole(u, ["admin"]),
 };

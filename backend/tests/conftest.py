@@ -67,10 +67,14 @@ async def client(test_engine: AsyncEngine) -> AsyncGenerator[AsyncClient, None]:
             yield session
 
     app.dependency_overrides[get_db] = _override
+    # Audit middleware reads the engine from app.state to allow test isolation.
+    prev_engine = getattr(app.state, "engine", None)
+    app.state.engine = test_engine
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as c:
         yield c
     app.dependency_overrides.clear()
+    app.state.engine = prev_engine
 
 
 async def _auth_headers(client: AsyncClient, role: str) -> dict[str, str]:
