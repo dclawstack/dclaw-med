@@ -14,6 +14,9 @@ class Settings(BaseSettings):
         "postgresql+asyncpg://postgres:postgres@localhost:5432/dclaw_med"
     )
     cors_origins: str = "http://localhost:3004,http://localhost:3000"
+    jwt_secret: str = "change-me-in-prod"
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 60
     embedding_model: str = "BAAI/bge-large-en-v1.5"
     llm_provider: str = "openrouter"
     llm_model: str = "kimi/k2.5"
