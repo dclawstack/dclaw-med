@@ -6,6 +6,7 @@ from app.api.v1.med import (
     diagnoses,
     drugs,
     icd10,
+    lab_results,
     notes,
     patients,
     prescriptions,
@@ -21,4 +22,7 @@ router.include_router(
 router.include_router(notes.router, prefix="/notes", tags=["Clinical Notes"])
 router.include_router(icd10.router, prefix="/icd10", tags=["ICD-10"])
 router.include_router(drugs.router, prefix="/drug", tags=["Drug Interactions"])
+router.include_router(
+    lab_results.router, prefix="/lab-results", tags=["Lab Results"]
+)
 router.include_router(patients.router, prefix="/patients", tags=["Patients"])

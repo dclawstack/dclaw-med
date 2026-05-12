@@ -17,6 +17,7 @@ from app.models.prescription import Prescription  # noqa: F401
 from app.models.clinical_note import ClinicalNote  # noqa: F401
 from app.models.user import User  # noqa: F401
 from app.models.audit_log import AuditLog  # noqa: F401
+from app.models.lab_result import LabResult  # noqa: F401
 
 config = context.config
 if config.config_file_name:
