@@ -50,3 +50,16 @@ def require_role(*allowed_roles: str) -> Callable[[User], User]:
         return user
 
     return _check
+
+
+# Reusable role-group dependencies.
+# Centralize policy here so router files declare intent, not raw role lists.
+
+READ_ANY = Depends(get_current_user)
+PATIENT_WRITE = Depends(require_role("admin", "doctor", "receptionist"))
+SYMPTOM_WRITE = Depends(require_role("admin", "doctor", "nurse"))
+DIAGNOSIS_WRITE = Depends(require_role("admin", "doctor"))
+PRESCRIPTION_WRITE = Depends(require_role("admin", "doctor"))
+NOTE_WRITE = Depends(require_role("admin", "doctor", "nurse"))
+CLINICAL_TOOL = Depends(require_role("admin", "doctor", "nurse"))
+ADMIN_ONLY = Depends(require_role("admin"))

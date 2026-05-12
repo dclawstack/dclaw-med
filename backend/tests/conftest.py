@@ -71,3 +71,61 @@ async def client(test_engine: AsyncEngine) -> AsyncGenerator[AsyncClient, None]:
     async with AsyncClient(transport=transport, base_url="http://test") as c:
         yield c
     app.dependency_overrides.clear()
+
+
+async def _auth_headers(client: AsyncClient, role: str) -> dict[str, str]:
+    """Register a fresh user with the given role and return an Authorization header."""
+    email = f"{role}@example.com"
+    password = "test-password-1"
+    await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": email,
+            "password": password,
+            "full_name": f"{role.title()} User",
+            "role": role,
+        },
+    )
+    login = await client.post(
+        "/api/v1/auth/login",
+        data={"username": email, "password": password},
+    )
+    token = login.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest_asyncio.fixture
+async def admin_headers(client: AsyncClient) -> dict[str, str]:
+    return await _auth_headers(client, "admin")
+
+
+@pytest_asyncio.fixture
+async def doctor_headers(client: AsyncClient) -> dict[str, str]:
+    return await _auth_headers(client, "doctor")
+
+
+@pytest_asyncio.fixture
+async def nurse_headers(client: AsyncClient) -> dict[str, str]:
+    return await _auth_headers(client, "nurse")
+
+
+@pytest_asyncio.fixture
+async def receptionist_headers(client: AsyncClient) -> dict[str, str]:
+    return await _auth_headers(client, "receptionist")
+
+
+@pytest_asyncio.fixture
+async def patient_id(client: AsyncClient, doctor_headers: dict[str, str]) -> str:
+    """A patient created by a doctor; useful for medical-record tests."""
+    res = await client.post(
+        "/api/v1/med/patients",
+        headers=doctor_headers,
+        json={
+            "name": "Test Patient",
+            "date_of_birth": "1990-01-01",
+            "gender": "other",
+            "medical_record_number": "MRN-TEST-001",
+        },
+    )
+    assert res.status_code == 201, res.text
+    return res.json()["id"]

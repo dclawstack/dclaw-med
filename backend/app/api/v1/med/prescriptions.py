@@ -6,6 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.auth import PRESCRIPTION_WRITE, READ_ANY
 from app.core.database import get_db
 from app.repositories.prescription_repo import PrescriptionRepository
 from app.schemas.prescription import (
@@ -17,7 +18,7 @@ from app.schemas.prescription import (
 router = APIRouter()
 
 
-@router.get("", response_model=list[PrescriptionResponse])
+@router.get("", response_model=list[PrescriptionResponse], dependencies=[READ_ANY])
 async def list_prescriptions(
     patient_id: UUID | None = None,
     page: int = 1,
@@ -32,7 +33,12 @@ async def list_prescriptions(
     return [PrescriptionResponse.model_validate(p) for p in prescriptions]
 
 
-@router.post("", response_model=PrescriptionResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=PrescriptionResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[PRESCRIPTION_WRITE],
+)
 async def create_prescription(
     data: PrescriptionCreate,
     db: AsyncSession = Depends(get_db),
@@ -43,7 +49,9 @@ async def create_prescription(
     return PrescriptionResponse.model_validate(prescription)
 
 
-@router.get("/{prescription_id}", response_model=PrescriptionResponse)
+@router.get(
+    "/{prescription_id}", response_model=PrescriptionResponse, dependencies=[READ_ANY]
+)
 async def get_prescription(
     prescription_id: UUID,
     db: AsyncSession = Depends(get_db),
@@ -58,7 +66,11 @@ async def get_prescription(
     return PrescriptionResponse.model_validate(prescription)
 
 
-@router.put("/{prescription_id}", response_model=PrescriptionResponse)
+@router.put(
+    "/{prescription_id}",
+    response_model=PrescriptionResponse,
+    dependencies=[PRESCRIPTION_WRITE],
+)
 async def update_prescription(
     prescription_id: UUID,
     data: PrescriptionUpdate,
@@ -75,7 +87,11 @@ async def update_prescription(
     return PrescriptionResponse.model_validate(prescription)
 
 
-@router.delete("/{prescription_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{prescription_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[PRESCRIPTION_WRITE],
+)
 async def delete_prescription(
     prescription_id: UUID,
     db: AsyncSession = Depends(get_db),

@@ -6,6 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.auth import DIAGNOSIS_WRITE, READ_ANY
 from app.core.database import get_db
 from app.repositories.diagnosis_repo import DiagnosisRepository
 from app.schemas.diagnosis import DiagnosisCreate, DiagnosisResponse, DiagnosisUpdate
@@ -13,7 +14,7 @@ from app.schemas.diagnosis import DiagnosisCreate, DiagnosisResponse, DiagnosisU
 router = APIRouter()
 
 
-@router.get("", response_model=list[DiagnosisResponse])
+@router.get("", response_model=list[DiagnosisResponse], dependencies=[READ_ANY])
 async def list_diagnoses(
     patient_id: UUID | None = None,
     page: int = 1,
@@ -28,7 +29,12 @@ async def list_diagnoses(
     return [DiagnosisResponse.model_validate(d) for d in diagnoses]
 
 
-@router.post("", response_model=DiagnosisResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=DiagnosisResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[DIAGNOSIS_WRITE],
+)
 async def create_diagnosis(
     data: DiagnosisCreate,
     db: AsyncSession = Depends(get_db),
@@ -39,7 +45,7 @@ async def create_diagnosis(
     return DiagnosisResponse.model_validate(diagnosis)
 
 
-@router.get("/{diagnosis_id}", response_model=DiagnosisResponse)
+@router.get("/{diagnosis_id}", response_model=DiagnosisResponse, dependencies=[READ_ANY])
 async def get_diagnosis(
     diagnosis_id: UUID,
     db: AsyncSession = Depends(get_db),
@@ -54,7 +60,9 @@ async def get_diagnosis(
     return DiagnosisResponse.model_validate(diagnosis)
 
 
-@router.put("/{diagnosis_id}", response_model=DiagnosisResponse)
+@router.put(
+    "/{diagnosis_id}", response_model=DiagnosisResponse, dependencies=[DIAGNOSIS_WRITE]
+)
 async def update_diagnosis(
     diagnosis_id: UUID,
     data: DiagnosisUpdate,
@@ -71,7 +79,11 @@ async def update_diagnosis(
     return DiagnosisResponse.model_validate(diagnosis)
 
 
-@router.delete("/{diagnosis_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{diagnosis_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[DIAGNOSIS_WRITE],
+)
 async def delete_diagnosis(
     diagnosis_id: UUID,
     db: AsyncSession = Depends(get_db),

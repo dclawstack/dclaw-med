@@ -5,6 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.auth import PATIENT_WRITE, READ_ANY
 from app.core.database import get_db
 from app.repositories.patient_repo import PatientRepository
 from app.schemas.patient import PatientCreate, PatientResponse, PatientUpdate
@@ -17,7 +18,7 @@ def _to_response(patient) -> PatientResponse:
     return PatientResponse.model_validate(patient)
 
 
-@router.get("", response_model=list[PatientResponse])
+@router.get("", response_model=list[PatientResponse], dependencies=[READ_ANY])
 async def list_patients(
     page: int = 1,
     page_size: int = 20,
@@ -29,7 +30,12 @@ async def list_patients(
     return [_to_response(p) for p in patients]
 
 
-@router.post("", response_model=PatientResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=PatientResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[PATIENT_WRITE],
+)
 async def create_patient(
     data: PatientCreate,
     db: AsyncSession = Depends(get_db),
@@ -49,7 +55,7 @@ async def create_patient(
     return _to_response(patient)
 
 
-@router.get("/{patient_id}", response_model=PatientResponse)
+@router.get("/{patient_id}", response_model=PatientResponse, dependencies=[READ_ANY])
 async def get_patient(
     patient_id: UUID,
     db: AsyncSession = Depends(get_db),
@@ -65,7 +71,7 @@ async def get_patient(
     return _to_response(patient)
 
 
-@router.put("/{patient_id}", response_model=PatientResponse)
+@router.put("/{patient_id}", response_model=PatientResponse, dependencies=[PATIENT_WRITE])
 async def update_patient(
     patient_id: UUID,
     data: PatientUpdate,
@@ -93,7 +99,11 @@ async def update_patient(
     return _to_response(patient)
 
 
-@router.delete("/{patient_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{patient_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[PATIENT_WRITE],
+)
 async def delete_patient(
     patient_id: UUID,
     db: AsyncSession = Depends(get_db),
@@ -109,7 +119,7 @@ async def delete_patient(
     await repo.delete(patient)
 
 
-@router.get("/{patient_id}/history")
+@router.get("/{patient_id}/history", dependencies=[READ_ANY])
 async def get_patient_history(
     patient_id: UUID,
     db: AsyncSession = Depends(get_db),

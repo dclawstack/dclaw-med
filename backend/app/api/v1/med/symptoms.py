@@ -6,6 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.auth import CLINICAL_TOOL, READ_ANY, SYMPTOM_WRITE
 from app.core.database import get_db
 from app.repositories.symptom_repo import SymptomRepository
 from app.schemas.symptom import (
@@ -20,7 +21,11 @@ from app.services.symptom_analyzer import analyze_symptoms
 router = APIRouter()
 
 
-@router.post("/analyze", response_model=SymptomAnalysisResponse)
+@router.post(
+    "/analyze",
+    response_model=SymptomAnalysisResponse,
+    dependencies=[CLINICAL_TOOL],
+)
 async def analyze_symptoms_endpoint(
     request: SymptomAnalysisRequest,
 ) -> SymptomAnalysisResponse:
@@ -28,7 +33,7 @@ async def analyze_symptoms_endpoint(
     return await analyze_symptoms(request)
 
 
-@router.get("", response_model=list[SymptomResponse])
+@router.get("", response_model=list[SymptomResponse], dependencies=[READ_ANY])
 async def list_symptoms(
     patient_id: UUID | None = None,
     page: int = 1,
@@ -43,7 +48,12 @@ async def list_symptoms(
     return [SymptomResponse.model_validate(s) for s in symptoms]
 
 
-@router.post("", response_model=SymptomResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=SymptomResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[SYMPTOM_WRITE],
+)
 async def create_symptom(
     data: SymptomCreate,
     db: AsyncSession = Depends(get_db),
@@ -54,7 +64,7 @@ async def create_symptom(
     return SymptomResponse.model_validate(symptom)
 
 
-@router.get("/{symptom_id}", response_model=SymptomResponse)
+@router.get("/{symptom_id}", response_model=SymptomResponse, dependencies=[READ_ANY])
 async def get_symptom(
     symptom_id: UUID,
     db: AsyncSession = Depends(get_db),
@@ -67,7 +77,7 @@ async def get_symptom(
     return SymptomResponse.model_validate(symptom)
 
 
-@router.put("/{symptom_id}", response_model=SymptomResponse)
+@router.put("/{symptom_id}", response_model=SymptomResponse, dependencies=[SYMPTOM_WRITE])
 async def update_symptom(
     symptom_id: UUID,
     data: SymptomUpdate,
@@ -82,7 +92,11 @@ async def update_symptom(
     return SymptomResponse.model_validate(symptom)
 
 
-@router.delete("/{symptom_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{symptom_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[SYMPTOM_WRITE],
+)
 async def delete_symptom(
     symptom_id: UUID,
     db: AsyncSession = Depends(get_db),

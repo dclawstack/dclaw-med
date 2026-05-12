@@ -2,13 +2,14 @@
 
 from fastapi import APIRouter
 
+from app.core.auth import READ_ANY
 from app.schemas.diagnosis import ICD10LookupRequest, ICD10LookupResponse
 from app.services.icd10_service import lookup_icd10
 
 router = APIRouter()
 
 
-@router.post("/lookup", response_model=ICD10LookupResponse)
+@router.post("/lookup", response_model=ICD10LookupResponse, dependencies=[READ_ANY])
 async def lookup_icd10_endpoint(
     request: ICD10LookupRequest,
 ) -> ICD10LookupResponse:
