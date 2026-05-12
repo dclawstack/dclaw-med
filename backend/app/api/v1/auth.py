@@ -9,7 +9,7 @@ from app.core.database import get_db
 from app.core.security import create_access_token, verify_password
 from app.models.user import User
 from app.repositories.user_repo import UserRepository
-from app.schemas.user import Token, UserCreate, UserResponse
+from app.schemas.user import ProviderResponse, Token, UserCreate, UserResponse
 
 router = APIRouter()
 
@@ -57,3 +57,13 @@ async def login(
 async def read_me(current: User = Depends(get_current_user)) -> UserResponse:
     """Return the current authenticated user."""
     return UserResponse.model_validate(current)
+
+
+@router.get("/providers", response_model=list[ProviderResponse])
+async def list_providers(
+    db: AsyncSession = Depends(get_db),
+    _current: User = Depends(get_current_user),
+) -> list[ProviderResponse]:
+    """Return active doctors and admins, for appointment provider pickers."""
+    providers = await UserRepository(db).list_providers()
+    return [ProviderResponse.model_validate(p) for p in providers]
