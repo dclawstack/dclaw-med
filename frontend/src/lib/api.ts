@@ -1,0 +1,344 @@
+const RAW_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
+const API_BASE = RAW_BASE.replace(/\/$/, "");
+const MED = `${API_BASE}/api/v1/med`;
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(path, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...(init?.headers ?? {}),
+    },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    let detail = res.statusText;
+    try {
+      const body = await res.json();
+      detail = body.detail ?? JSON.stringify(body);
+    } catch {
+      // ignore
+    }
+    throw new Error(`${res.status} ${detail}`);
+  }
+  if (res.status === 204) return undefined as T;
+  return (await res.json()) as T;
+}
+
+// ---------- Health ----------
+
+export interface HealthResponse {
+  status: string;
+  version: string;
+}
+
+export function healthCheck(): Promise<HealthResponse> {
+  return request<HealthResponse>(`${API_BASE}/health`);
+}
+
+// ---------- Patients ----------
+
+export interface PatientCreate {
+  name: string;
+  date_of_birth: string;
+  gender: string;
+  medical_record_number: string;
+  contact_info?: Record<string, unknown> | null;
+}
+
+export interface PatientUpdate {
+  name?: string;
+  date_of_birth?: string;
+  gender?: string;
+  contact_info?: Record<string, unknown> | null;
+}
+
+export interface PatientResponse extends PatientCreate {
+  id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export function listPatients(page = 1, pageSize = 20): Promise<PatientResponse[]> {
+  return request<PatientResponse[]>(
+    `${MED}/patients?page=${page}&page_size=${pageSize}`,
+  );
+}
+
+export function getPatient(id: string): Promise<PatientResponse> {
+  return request<PatientResponse>(`${MED}/patients/${id}`);
+}
+
+export function createPatient(data: PatientCreate): Promise<PatientResponse> {
+  return request<PatientResponse>(`${MED}/patients`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function updatePatient(
+  id: string,
+  data: PatientUpdate,
+): Promise<PatientResponse> {
+  return request<PatientResponse>(`${MED}/patients/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export function deletePatient(id: string): Promise<void> {
+  return request<void>(`${MED}/patients/${id}`, { method: "DELETE" });
+}
+
+// ---------- Symptoms ----------
+
+export interface SymptomCreate {
+  patient_id: string;
+  description: string;
+  onset_date?: string | null | undefined;
+  severity?: number;
+  body_system?: string | null | undefined;
+  notes?: string | null | undefined;
+}
+
+export interface SymptomResponse {
+  id: string;
+  patient_id: string;
+  description: string;
+  onset_date: string | null;
+  severity: number;
+  body_system: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DifferentialDiagnosis {
+  condition: string;
+  icd10_code: string;
+  confidence: number;
+  reasoning: string;
+}
+
+export interface SymptomAnalysisRequest {
+  patient_id: string;
+  symptoms: string;
+  include_differential?: boolean;
+  max_results?: number;
+}
+
+export interface SymptomAnalysisResponse {
+  patient_id: string;
+  primary_symptoms: string[];
+  differential_diagnoses: DifferentialDiagnosis[];
+  recommended_tests: string[];
+  urgency_level: string;
+  disclaimer: string;
+}
+
+export function listSymptoms(patientId?: string): Promise<SymptomResponse[]> {
+  const q = patientId ? `?patient_id=${patientId}` : "";
+  return request<SymptomResponse[]>(`${MED}/symptoms${q}`);
+}
+
+export function createSymptom(data: SymptomCreate): Promise<SymptomResponse> {
+  return request<SymptomResponse>(`${MED}/symptoms`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteSymptom(id: string): Promise<void> {
+  return request<void>(`${MED}/symptoms/${id}`, { method: "DELETE" });
+}
+
+export function analyzeSymptoms(
+  data: SymptomAnalysisRequest,
+): Promise<SymptomAnalysisResponse> {
+  return request<SymptomAnalysisResponse>(`${MED}/symptoms/analyze`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+// ---------- Diagnoses ----------
+
+export interface DiagnosisCreate {
+  patient_id: string;
+  icd10_code: string;
+  name: string;
+  description?: string | null;
+  confidence?: number;
+  status?: string;
+  differential?: Record<string, unknown>[] | null;
+}
+
+export interface DiagnosisResponse {
+  id: string;
+  patient_id: string;
+  icd10_code: string;
+  name: string;
+  description: string | null;
+  confidence: number;
+  status: string;
+  differential: Record<string, unknown>[] | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export function listDiagnoses(patientId?: string): Promise<DiagnosisResponse[]> {
+  const q = patientId ? `?patient_id=${patientId}` : "";
+  return request<DiagnosisResponse[]>(`${MED}/diagnoses${q}`);
+}
+
+export function createDiagnosis(data: DiagnosisCreate): Promise<DiagnosisResponse> {
+  return request<DiagnosisResponse>(`${MED}/diagnoses`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteDiagnosis(id: string): Promise<void> {
+  return request<void>(`${MED}/diagnoses/${id}`, { method: "DELETE" });
+}
+
+// ---------- Prescriptions ----------
+
+export interface PrescriptionCreate {
+  patient_id: string;
+  medication_name: string;
+  dosage: string;
+  frequency: string;
+  route: string;
+  start_date: string;
+  end_date?: string | null;
+  instructions?: string | null;
+  status?: string;
+}
+
+export interface PrescriptionResponse {
+  id: string;
+  patient_id: string;
+  medication_name: string;
+  dosage: string;
+  frequency: string;
+  route: string;
+  start_date: string;
+  end_date: string | null;
+  instructions: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export function listPrescriptions(
+  patientId?: string,
+): Promise<PrescriptionResponse[]> {
+  const q = patientId ? `?patient_id=${patientId}` : "";
+  return request<PrescriptionResponse[]>(`${MED}/prescriptions${q}`);
+}
+
+export function createPrescription(
+  data: PrescriptionCreate,
+): Promise<PrescriptionResponse> {
+  return request<PrescriptionResponse>(`${MED}/prescriptions`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function deletePrescription(id: string): Promise<void> {
+  return request<void>(`${MED}/prescriptions/${id}`, { method: "DELETE" });
+}
+
+// ---------- Clinical Notes ----------
+
+export interface ClinicalNoteCreate {
+  patient_id: string;
+  note_type: string;
+  content: string;
+  generated_by?: string;
+  template_used?: string | null;
+}
+
+export interface ClinicalNoteResponse {
+  id: string;
+  patient_id: string;
+  note_type: string;
+  content: string;
+  generated_by: string;
+  template_used: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NoteGenerateRequest {
+  patient_id: string;
+  note_type: string;
+  context: string;
+  include_history?: boolean;
+}
+
+export interface NoteGenerateResponse {
+  patient_id: string;
+  note_type: string;
+  generated_content: string;
+  generated_by: string;
+  template_used: string | null;
+  word_count: number;
+  disclaimer: string;
+}
+
+export function listNotes(patientId?: string): Promise<ClinicalNoteResponse[]> {
+  const q = patientId ? `?patient_id=${patientId}` : "";
+  return request<ClinicalNoteResponse[]>(`${MED}/notes${q}`);
+}
+
+export function createNote(data: ClinicalNoteCreate): Promise<ClinicalNoteResponse> {
+  return request<ClinicalNoteResponse>(`${MED}/notes`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteNote(id: string): Promise<void> {
+  return request<void>(`${MED}/notes/${id}`, { method: "DELETE" });
+}
+
+export function generateNote(
+  data: NoteGenerateRequest,
+): Promise<NoteGenerateResponse> {
+  return request<NoteGenerateResponse>(`${MED}/notes/generate`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+// ---------- ICD-10 ----------
+
+export interface ICD10Code {
+  code: string;
+  description: string;
+  category: string;
+  billable: boolean;
+}
+
+export interface ICD10LookupResponse {
+  query: string;
+  results: ICD10Code[];
+  total_found: number;
+}
+
+export interface ICD10LookupRequest {
+  query: string;
+  max_results?: number;
+}
+
+export function lookupICD10(
+  req: ICD10LookupRequest,
+): Promise<ICD10LookupResponse> {
+  return request<ICD10LookupResponse>(`${MED}/icd10/lookup`, {
+    method: "POST",
+    body: JSON.stringify({ query: req.query, max_results: req.max_results ?? 10 }),
+  });
+}

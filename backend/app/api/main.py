@@ -15,9 +15,7 @@ configure_logging()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan handler."""
-    from app.core.database import init_db
-    await init_db()
+    """Application lifespan handler. Schema is managed by Alembic."""
     yield
 
 
@@ -30,7 +28,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3004", "https://med.dclawstack.io"],
+    allow_origins=settings.cors_origin_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

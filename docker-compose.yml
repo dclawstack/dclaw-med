@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -34,6 +32,7 @@ services:
       API_PORT: 8092
       APP_ENV: dev
       LOG_LEVEL: INFO
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3004,http://localhost:3000}
     ports:
       - "8092:8092"
     healthcheck:
@@ -47,16 +46,18 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8092}
     container_name: dclaw-med-frontend
     restart: unless-stopped
     depends_on:
       - backend
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8092
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8092}
     ports:
       - "3004:3004"
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3004/"]
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3004/"]
       interval: 30s
       timeout: 5s
       retries: 3

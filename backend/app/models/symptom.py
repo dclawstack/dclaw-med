@@ -27,4 +27,6 @@ class Symptom(Base, UUIDMixin, TimestampMixin):
     body_system: Mapped[str | None] = mapped_column(String(100), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    patient: Mapped["Patient"] = relationship("Patient", back_populates="symptoms")
+    patient: Mapped["Patient"] = relationship(
+        "Patient", back_populates="symptoms", lazy="selectin"
+    )

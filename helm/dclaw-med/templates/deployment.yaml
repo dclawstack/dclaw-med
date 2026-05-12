@@ -44,6 +44,8 @@ spec:
               value: "8092"
             - name: APP_ENV
               value: "prod"
+            - name: CORS_ORIGINS
+              value: "{{ .Values.backend.cors_origins }}"
           resources:
             {{- toYaml .Values.resources.backend | nindent 12 }}
           livenessProbe:

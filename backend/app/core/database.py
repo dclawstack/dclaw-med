@@ -22,6 +22,6 @@ async def get_db() -> AsyncSession:
 
 
 async def init_db() -> None:
-    """Create all tables."""
+    """Create all tables. Intended for test fixtures only; production uses Alembic."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
