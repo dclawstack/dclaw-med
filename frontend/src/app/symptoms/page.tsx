@@ -12,9 +12,13 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { Stethoscope, AlertTriangle, Send, FlaskConical } from "lucide-react";
+import { Stethoscope, AlertTriangle, Send, FlaskConical, Lock } from "lucide-react";
+import { useAuth } from "@/components/auth-provider";
+import { can } from "@/lib/permissions";
 
 export default function SymptomsPage() {
+  const { user } = useAuth();
+  const canUse = can.useClinicalTool(user);
   const [patientId, setPatientId] = useState("");
   const [symptoms, setSymptoms] = useState("");
   const [loading, setLoading] = useState(false);
@@ -57,25 +61,34 @@ export default function SymptomsPage() {
         <p className="text-muted-foreground">Enter symptoms to generate a differential diagnosis with confidence scores.</p>
       </div>
 
-      <Card>
-        <CardContent className="pt-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="patient-id">Patient ID (optional)</Label>
-              <Input id="patient-id" value={patientId} onChange={(e) => setPatientId(e.target.value)} placeholder="UUID of existing patient" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="symptoms">Symptoms</Label>
-              <Textarea id="symptoms" value={symptoms} onChange={(e) => setSymptoms(e.target.value)} placeholder="e.g. chest pain, shortness of breath, sweating" rows={4} required />
-              <p className="text-xs text-muted-foreground">Separate multiple symptoms with commas</p>
-            </div>
-            <Button type="submit" disabled={loading || !symptoms.trim()}>
-              {loading ? <Skeleton className="w-4 h-4 rounded-full" /> : <Send className="w-4 h-4 mr-2" />}
-              Analyze
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+      {canUse ? (
+        <Card>
+          <CardContent className="pt-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="patient-id">Patient ID (optional)</Label>
+                <Input id="patient-id" value={patientId} onChange={(e) => setPatientId(e.target.value)} placeholder="UUID of existing patient" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="symptoms">Symptoms</Label>
+                <Textarea id="symptoms" value={symptoms} onChange={(e) => setSymptoms(e.target.value)} placeholder="e.g. chest pain, shortness of breath, sweating" rows={4} required />
+                <p className="text-xs text-muted-foreground">Separate multiple symptoms with commas</p>
+              </div>
+              <Button type="submit" disabled={loading || !symptoms.trim()}>
+                {loading ? <Skeleton className="w-4 h-4 rounded-full" /> : <Send className="w-4 h-4 mr-2" />}
+                Analyze
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="p-8 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">
+            <Lock className="w-6 h-6" />
+            Your role does not have access to the symptom analyzer.
+          </CardContent>
+        </Card>
+      )}
 
       {loading && (
         <Card><CardContent className="p-6 space-y-4">

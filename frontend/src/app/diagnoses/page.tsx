@@ -11,8 +11,12 @@ import { ClipboardList, Trash2 } from "lucide-react";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { useAuth } from "@/components/auth-provider";
+import { can } from "@/lib/permissions";
 
 export default function DiagnosesPage() {
+  const { user } = useAuth();
+  const canWrite = can.writeDiagnosis(user);
   const [diagnoses, setDiagnoses] = useState<DiagnosisResponse[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -76,7 +80,9 @@ export default function DiagnosesPage() {
                   <TableCell><Badge variant={d.status === "confirmed" ? "default" : d.status === "provisional" ? "secondary" : "outline"}>{d.status}</Badge></TableCell>
                   <TableCell>{(d.confidence * 100).toFixed(0)}%</TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(d.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                    {canWrite && (
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(d.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}

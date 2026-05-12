@@ -23,8 +23,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { ArrowLeft, Plus, Trash2, Save, User, Calendar, Stethoscope, Pill, FileText, ClipboardList } from "lucide-react";
+import { useAuth } from "@/components/auth-provider";
+import { can } from "@/lib/permissions";
 
 export default function PatientDetailPage() {
+  const { user } = useAuth();
+  const canWritePatient = can.writePatient(user);
   const { id } = useParams<{ id: string }>();
   const [patient, setPatient] = useState<PatientResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -112,7 +116,9 @@ export default function PatientDetailPage() {
             <p className="text-sm text-muted-foreground">{patient.medical_record_number} · {patient.gender} · DOB {patient.date_of_birth}</p>
           </div>
         </div>
-        <Button variant="outline" onClick={() => setEditMode((v) => !v)}>{editMode ? "Cancel" : "Edit"}</Button>
+        {canWritePatient && (
+          <Button variant="outline" onClick={() => setEditMode((v) => !v)}>{editMode ? "Cancel" : "Edit"}</Button>
+        )}
       </div>
 
       {editMode && (
@@ -175,6 +181,8 @@ export default function PatientDetailPage() {
 // ─── Symptom Tab ─────────────────────────────────────────
 
 function SymptomTab({ patientId, symptoms, onChange }: { patientId: string; symptoms: SymptomResponse[]; onChange: (s: SymptomResponse[]) => void }) {
+  const { user } = useAuth();
+  const canWrite = can.writeSymptom(user);
   const [open, setOpen] = useState(false);
   const [desc, setDesc] = useState("");
   const [severity, setSeverity] = useState("5");
@@ -200,18 +208,20 @@ function SymptomTab({ patientId, symptoms, onChange }: { patientId: string; symp
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-sm">Symptoms</CardTitle>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger><Button size="sm"><Plus className="w-3 h-3 mr-1" />Add</Button></DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Add Symptom</DialogTitle></DialogHeader>
-            <div className="space-y-3 py-2">
-              <div className="space-y-1"><Label>Description</Label><Textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={2} /></div>
-              <div className="space-y-1"><Label>Severity (1-10)</Label><Input type="number" min={1} max={10} value={severity} onChange={(e) => setSeverity(e.target.value)} /></div>
-              <div className="space-y-1"><Label>Body System</Label><Input value={system} onChange={(e) => setSystem(e.target.value)} placeholder="e.g. Cardiovascular" /></div>
-            </div>
-            <DialogFooter><Button onClick={handleAdd} disabled={!desc.trim()}>Add</Button></DialogFooter>
-          </DialogContent>
-        </Dialog>
+        {canWrite && (
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger><Button size="sm"><Plus className="w-3 h-3 mr-1" />Add</Button></DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Add Symptom</DialogTitle></DialogHeader>
+              <div className="space-y-3 py-2">
+                <div className="space-y-1"><Label>Description</Label><Textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={2} /></div>
+                <div className="space-y-1"><Label>Severity (1-10)</Label><Input type="number" min={1} max={10} value={severity} onChange={(e) => setSeverity(e.target.value)} /></div>
+                <div className="space-y-1"><Label>Body System</Label><Input value={system} onChange={(e) => setSystem(e.target.value)} placeholder="e.g. Cardiovascular" /></div>
+              </div>
+              <DialogFooter><Button onClick={handleAdd} disabled={!desc.trim()}>Add</Button></DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
       </CardHeader>
       <CardContent className="space-y-2">
         {symptoms.length === 0 ? <p className="text-sm text-muted-foreground">No symptoms recorded.</p> : symptoms.map((s) => (
@@ -220,7 +230,9 @@ function SymptomTab({ patientId, symptoms, onChange }: { patientId: string; symp
               <p className="text-sm font-medium">{s.description}</p>
               <p className="text-xs text-muted-foreground">Severity {s.severity}/10 {s.body_system ? `· ${s.body_system}` : ""}</p>
             </div>
-            <Button variant="ghost" size="icon" onClick={() => handleDelete(s.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+            {canWrite && (
+              <Button variant="ghost" size="icon" onClick={() => handleDelete(s.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+            )}
           </div>
         ))}
       </CardContent>
@@ -231,6 +243,8 @@ function SymptomTab({ patientId, symptoms, onChange }: { patientId: string; symp
 // ─── Diagnosis Tab ───────────────────────────────────────
 
 function DiagnosisTab({ patientId, diagnoses, onChange }: { patientId: string; diagnoses: DiagnosisResponse[]; onChange: (d: DiagnosisResponse[]) => void }) {
+  const { user } = useAuth();
+  const canWrite = can.writeDiagnosis(user);
   const [open, setOpen] = useState(false);
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
@@ -256,27 +270,29 @@ function DiagnosisTab({ patientId, diagnoses, onChange }: { patientId: string; d
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-sm">Diagnoses</CardTitle>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger><Button size="sm"><Plus className="w-3 h-3 mr-1" />Add</Button></DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Add Diagnosis</DialogTitle></DialogHeader>
-            <div className="space-y-3 py-2">
-              <div className="space-y-1"><Label>ICD-10 Code</Label><Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="I10" /></div>
-              <div className="space-y-1"><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Hypertension" /></div>
-              <div className="space-y-1"><Label>Status</Label>
-                <Select value={status} onValueChange={(v) => setStatus(v ?? "provisional")}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="provisional">Provisional</SelectItem>
-                    <SelectItem value="confirmed">Confirmed</SelectItem>
-                    <SelectItem value="ruled_out">Ruled Out</SelectItem>
-                  </SelectContent>
-                </Select>
+        {canWrite && (
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger><Button size="sm"><Plus className="w-3 h-3 mr-1" />Add</Button></DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Add Diagnosis</DialogTitle></DialogHeader>
+              <div className="space-y-3 py-2">
+                <div className="space-y-1"><Label>ICD-10 Code</Label><Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="I10" /></div>
+                <div className="space-y-1"><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Hypertension" /></div>
+                <div className="space-y-1"><Label>Status</Label>
+                  <Select value={status} onValueChange={(v) => setStatus(v ?? "provisional")}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="provisional">Provisional</SelectItem>
+                      <SelectItem value="confirmed">Confirmed</SelectItem>
+                      <SelectItem value="ruled_out">Ruled Out</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            </div>
-            <DialogFooter><Button onClick={handleAdd} disabled={!code.trim() || !name.trim()}>Add</Button></DialogFooter>
-          </DialogContent>
-        </Dialog>
+              <DialogFooter><Button onClick={handleAdd} disabled={!code.trim() || !name.trim()}>Add</Button></DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
       </CardHeader>
       <CardContent className="space-y-2">
         {diagnoses.length === 0 ? <p className="text-sm text-muted-foreground">No diagnoses recorded.</p> : diagnoses.map((d) => (
@@ -285,7 +301,9 @@ function DiagnosisTab({ patientId, diagnoses, onChange }: { patientId: string; d
               <p className="text-sm font-medium">{d.name} <Badge variant="outline" className="ml-1">{d.icd10_code}</Badge></p>
               <p className="text-xs text-muted-foreground">Status: {d.status}</p>
             </div>
-            <Button variant="ghost" size="icon" onClick={() => handleDelete(d.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+            {canWrite && (
+              <Button variant="ghost" size="icon" onClick={() => handleDelete(d.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+            )}
           </div>
         ))}
       </CardContent>
@@ -296,6 +314,8 @@ function DiagnosisTab({ patientId, diagnoses, onChange }: { patientId: string; d
 // ─── Prescription Tab ────────────────────────────────────
 
 function PrescriptionTab({ patientId, prescriptions, onChange }: { patientId: string; prescriptions: PrescriptionResponse[]; onChange: (p: PrescriptionResponse[]) => void }) {
+  const { user } = useAuth();
+  const canWrite = can.writePrescription(user);
   const [open, setOpen] = useState(false);
   const [med, setMed] = useState("");
   const [dosage, setDosage] = useState("");
@@ -325,31 +345,33 @@ function PrescriptionTab({ patientId, prescriptions, onChange }: { patientId: st
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-sm">Prescriptions</CardTitle>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger><Button size="sm"><Plus className="w-3 h-3 mr-1" />Add</Button></DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Add Prescription</DialogTitle></DialogHeader>
-            <div className="space-y-3 py-2">
-              <div className="space-y-1"><Label>Medication</Label><Input value={med} onChange={(e) => setMed(e.target.value)} placeholder="Lisinopril" /></div>
-              <div className="space-y-1"><Label>Dosage</Label><Input value={dosage} onChange={(e) => setDosage(e.target.value)} placeholder="10 mg" /></div>
-              <div className="space-y-1"><Label>Frequency</Label><Input value={freq} onChange={(e) => setFreq(e.target.value)} placeholder="Once daily" /></div>
-              <div className="space-y-1"><Label>Route</Label>
-                <Select value={route} onValueChange={(v) => setRoute(v ?? "oral")}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="oral">Oral</SelectItem>
-                    <SelectItem value="iv">IV</SelectItem>
-                    <SelectItem value="im">IM</SelectItem>
-                    <SelectItem value="subcutaneous">Subcutaneous</SelectItem>
-                    <SelectItem value="topical">Topical</SelectItem>
-                    <SelectItem value="inhalation">Inhalation</SelectItem>
-                  </SelectContent>
-                </Select>
+        {canWrite && (
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger><Button size="sm"><Plus className="w-3 h-3 mr-1" />Add</Button></DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Add Prescription</DialogTitle></DialogHeader>
+              <div className="space-y-3 py-2">
+                <div className="space-y-1"><Label>Medication</Label><Input value={med} onChange={(e) => setMed(e.target.value)} placeholder="Lisinopril" /></div>
+                <div className="space-y-1"><Label>Dosage</Label><Input value={dosage} onChange={(e) => setDosage(e.target.value)} placeholder="10 mg" /></div>
+                <div className="space-y-1"><Label>Frequency</Label><Input value={freq} onChange={(e) => setFreq(e.target.value)} placeholder="Once daily" /></div>
+                <div className="space-y-1"><Label>Route</Label>
+                  <Select value={route} onValueChange={(v) => setRoute(v ?? "oral")}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="oral">Oral</SelectItem>
+                      <SelectItem value="iv">IV</SelectItem>
+                      <SelectItem value="im">IM</SelectItem>
+                      <SelectItem value="subcutaneous">Subcutaneous</SelectItem>
+                      <SelectItem value="topical">Topical</SelectItem>
+                      <SelectItem value="inhalation">Inhalation</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            </div>
-            <DialogFooter><Button onClick={handleAdd} disabled={!med.trim() || !dosage.trim() || !freq.trim()}>Add</Button></DialogFooter>
-          </DialogContent>
-        </Dialog>
+              <DialogFooter><Button onClick={handleAdd} disabled={!med.trim() || !dosage.trim() || !freq.trim()}>Add</Button></DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
       </CardHeader>
       <CardContent className="space-y-2">
         {prescriptions.length === 0 ? <p className="text-sm text-muted-foreground">No prescriptions recorded.</p> : prescriptions.map((p) => (
@@ -358,7 +380,9 @@ function PrescriptionTab({ patientId, prescriptions, onChange }: { patientId: st
               <p className="text-sm font-medium">{p.medication_name} <Badge variant="outline" className="ml-1">{p.status}</Badge></p>
               <p className="text-xs text-muted-foreground">{p.dosage} · {p.frequency} · {p.route}</p>
             </div>
-            <Button variant="ghost" size="icon" onClick={() => handleDelete(p.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+            {canWrite && (
+              <Button variant="ghost" size="icon" onClick={() => handleDelete(p.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+            )}
           </div>
         ))}
       </CardContent>
@@ -369,6 +393,8 @@ function PrescriptionTab({ patientId, prescriptions, onChange }: { patientId: st
 // ─── Note Tab ────────────────────────────────────────────
 
 function NoteTab({ patientId, notes, onChange }: { patientId: string; notes: ClinicalNoteResponse[]; onChange: (n: ClinicalNoteResponse[]) => void }) {
+  const { user } = useAuth();
+  const canWrite = can.writeNote(user);
   const [open, setOpen] = useState(false);
   const [noteType, setNoteType] = useState("progress");
   const [content, setContent] = useState("");
@@ -393,27 +419,29 @@ function NoteTab({ patientId, notes, onChange }: { patientId: string; notes: Cli
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-sm">Clinical Notes</CardTitle>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger><Button size="sm"><Plus className="w-3 h-3 mr-1" />Add</Button></DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Add Clinical Note</DialogTitle></DialogHeader>
-            <div className="space-y-3 py-2">
-              <div className="space-y-1"><Label>Note Type</Label>
-                <Select value={noteType} onValueChange={(v) => setNoteType(v ?? "progress")}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="progress">Progress</SelectItem>
-                    <SelectItem value="admission">Admission</SelectItem>
-                    <SelectItem value="discharge">Discharge</SelectItem>
-                    <SelectItem value="procedure">Procedure</SelectItem>
-                  </SelectContent>
-                </Select>
+        {canWrite && (
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger><Button size="sm"><Plus className="w-3 h-3 mr-1" />Add</Button></DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Add Clinical Note</DialogTitle></DialogHeader>
+              <div className="space-y-3 py-2">
+                <div className="space-y-1"><Label>Note Type</Label>
+                  <Select value={noteType} onValueChange={(v) => setNoteType(v ?? "progress")}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="progress">Progress</SelectItem>
+                      <SelectItem value="admission">Admission</SelectItem>
+                      <SelectItem value="discharge">Discharge</SelectItem>
+                      <SelectItem value="procedure">Procedure</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1"><Label>Content</Label><Textarea value={content} onChange={(e) => setContent(e.target.value)} rows={4} /></div>
               </div>
-              <div className="space-y-1"><Label>Content</Label><Textarea value={content} onChange={(e) => setContent(e.target.value)} rows={4} /></div>
-            </div>
-            <DialogFooter><Button onClick={handleAdd} disabled={!content.trim()}>Add</Button></DialogFooter>
-          </DialogContent>
-        </Dialog>
+              <DialogFooter><Button onClick={handleAdd} disabled={!content.trim()}>Add</Button></DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
       </CardHeader>
       <CardContent className="space-y-2">
         {notes.length === 0 ? <p className="text-sm text-muted-foreground">No notes recorded.</p> : notes.map((n) => (
@@ -425,7 +453,9 @@ function NoteTab({ patientId, notes, onChange }: { patientId: string; notes: Cli
               </p>
               <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{n.content}</p>
             </div>
-            <Button variant="ghost" size="icon" onClick={() => handleDelete(n.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+            {canWrite && (
+              <Button variant="ghost" size="icon" onClick={() => handleDelete(n.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+            )}
           </div>
         ))}
       </CardContent>

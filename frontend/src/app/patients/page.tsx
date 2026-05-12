@@ -40,8 +40,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import Link from "next/link";
 import { Database, Plus, Trash2, Users, Eye } from "lucide-react";
+import { useAuth } from "@/components/auth-provider";
+import { can } from "@/lib/permissions";
 
 export default function PatientsPage() {
+  const { user } = useAuth();
+  const canWrite = can.writePatient(user);
   const [patients, setPatients] = useState<PatientResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -108,6 +112,7 @@ export default function PatientsPage() {
           </h1>
           <p className="text-muted-foreground">Manage patient records and medical history.</p>
         </div>
+        {canWrite && (
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger>
             <Button><Plus className="w-4 h-4 mr-2" />New Patient</Button>
@@ -148,6 +153,7 @@ export default function PatientsPage() {
             </form>
           </DialogContent>
         </Dialog>
+        )}
       </div>
 
       <Card>
@@ -156,8 +162,12 @@ export default function PatientsPage() {
         ) : patients.length === 0 ? (
           <CardContent className="p-8 text-center space-y-3">
             <Users className="w-10 h-10 text-muted-foreground mx-auto" />
-            <p className="text-sm text-muted-foreground">No patients yet. Create your first patient.</p>
-            <Button onClick={() => setDialogOpen(true)}><Plus className="w-4 h-4 mr-2" />Create Patient</Button>
+            <p className="text-sm text-muted-foreground">
+              {canWrite ? "No patients yet. Create your first patient." : "No patients yet."}
+            </p>
+            {canWrite && (
+              <Button onClick={() => setDialogOpen(true)}><Plus className="w-4 h-4 mr-2" />Create Patient</Button>
+            )}
           </CardContent>
         ) : (
           <Table>
@@ -182,9 +192,11 @@ export default function PatientsPage() {
                       <Link href={`/patients/${p.id}`}>
                         <Button variant="ghost" size="icon"><Eye className="w-4 h-4" /></Button>
                       </Link>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(p.id)}>
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
+                      {canWrite && (
+                        <Button variant="ghost" size="icon" onClick={() => handleDelete(p.id)}>
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
