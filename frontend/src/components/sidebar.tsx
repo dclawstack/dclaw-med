@@ -8,6 +8,7 @@ import { useAuth } from "@/components/auth-provider";
 import { can } from "@/lib/permissions";
 import {
   Activity,
+  Calendar,
   ClipboardList,
   Database,
   FileText,
@@ -22,6 +23,7 @@ import {
 const navItems = [
   { href: "/", label: "Dashboard", icon: Home },
   { href: "/patients", label: "Patients", icon: Database },
+  { href: "/appointments", label: "Appointments", icon: Calendar },
   { href: "/symptoms", label: "Symptoms", icon: Stethoscope },
   { href: "/diagnoses", label: "Diagnoses", icon: ClipboardList },
   { href: "/prescriptions", label: "Prescriptions", icon: Pill },

@@ -11,6 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base, TimestampMixin, UUIDMixin
 
 if TYPE_CHECKING:
+    from app.models.appointment import Appointment
     from app.models.clinical_note import ClinicalNote
     from app.models.diagnosis import Diagnosis
     from app.models.lab_result import LabResult
@@ -45,4 +46,7 @@ class Patient(Base, UUIDMixin, TimestampMixin):
     )
     lab_results: Mapped[list["LabResult"]] = relationship(
         "LabResult", back_populates="patient", lazy="selectin", cascade="all, delete-orphan"
+    )
+    appointments: Mapped[list["Appointment"]] = relationship(
+        "Appointment", back_populates="patient", lazy="selectin", cascade="all, delete-orphan"
     )

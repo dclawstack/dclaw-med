@@ -39,3 +39,13 @@ class UserRepository:
         await self.db.commit()
         await self.db.refresh(user)
         return user
+
+    async def list_providers(self) -> list[User]:
+        """List active users eligible to be assigned as appointment providers."""
+        result = await self.db.execute(
+            select(User)
+            .where(User.is_active.is_(True))
+            .where(User.role.in_(("doctor", "admin")))
+            .order_by(User.full_name)
+        )
+        return list(result.scalars().all())

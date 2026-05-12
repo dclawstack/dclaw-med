@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field  # noqa: F401
 
 ROLE_PATTERN = "^(doctor|nurse|admin|receptionist)$"
 
@@ -40,3 +40,13 @@ class TokenData(BaseModel):
 
     user_id: UUID
     role: str
+
+
+class ProviderResponse(BaseModel):
+    """Minimal user shape for provider selection on appointments."""
+
+    id: UUID
+    full_name: str
+    role: str
+
+    model_config = ConfigDict(from_attributes=True)

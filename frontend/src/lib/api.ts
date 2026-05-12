@@ -82,6 +82,16 @@ export function getCurrentUser(): Promise<CurrentUser> {
   return request<CurrentUser>(`${AUTH}/me`);
 }
 
+export interface Provider {
+  id: string;
+  full_name: string;
+  role: string;
+}
+
+export function listProviders(): Promise<Provider[]> {
+  return request<Provider[]>(`${AUTH}/providers`);
+}
+
 // ---------- Health ----------
 
 export interface HealthResponse {
@@ -447,6 +457,80 @@ export function createLabResult(
 
 export function deleteLabResult(id: string): Promise<void> {
   return request<void>(`${MED}/lab-results/${id}`, { method: "DELETE" });
+}
+
+// ---------- Appointments ----------
+
+export interface AppointmentCreate {
+  patient_id: string;
+  provider_id: string;
+  scheduled_at: string;
+  duration_minutes?: number;
+  status?: string;
+  location?: string | null;
+  notes?: string | null;
+}
+
+export interface AppointmentResponse {
+  id: string;
+  patient_id: string;
+  provider_id: string;
+  scheduled_at: string;
+  duration_minutes: number;
+  status: string;
+  location: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AppointmentUpdate {
+  scheduled_at?: string;
+  duration_minutes?: number;
+  status?: string;
+  location?: string | null;
+  notes?: string | null;
+  provider_id?: string;
+}
+
+export function listAppointments(
+  filters: {
+    date?: string;
+    patient_id?: string;
+    provider_id?: string;
+  } = {},
+): Promise<AppointmentResponse[]> {
+  const q = new URLSearchParams();
+  if (filters.date) q.set("date", filters.date);
+  if (filters.patient_id) q.set("patient_id", filters.patient_id);
+  if (filters.provider_id) q.set("provider_id", filters.provider_id);
+  const qs = q.toString();
+  return request<AppointmentResponse[]>(
+    `${MED}/appointments${qs ? `?${qs}` : ""}`,
+  );
+}
+
+export function createAppointment(
+  data: AppointmentCreate,
+): Promise<AppointmentResponse> {
+  return request<AppointmentResponse>(`${MED}/appointments`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateAppointment(
+  id: string,
+  data: AppointmentUpdate,
+): Promise<AppointmentResponse> {
+  return request<AppointmentResponse>(`${MED}/appointments/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteAppointment(id: string): Promise<void> {
+  return request<void>(`${MED}/appointments/${id}`, { method: "DELETE" });
 }
 
 // ---------- Audit Logs (admin only) ----------
