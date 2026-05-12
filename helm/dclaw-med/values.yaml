@@ -61,6 +61,7 @@ resources:
 
 backend:
   database_url: "postgresql+asyncpg://app:app@localhost:5432/dclaw_med"
+  cors_origins: "https://med.dclawstack.io"
 
 cloudnativepg:
   enabled: false

@@ -13,10 +13,16 @@ class Settings(BaseSettings):
     database_url: str = (
         "postgresql+asyncpg://postgres:postgres@localhost:5432/dclaw_med"
     )
+    cors_origins: str = "http://localhost:3004,http://localhost:3000"
     embedding_model: str = "BAAI/bge-large-en-v1.5"
     llm_provider: str = "openrouter"
     llm_model: str = "kimi/k2.5"
     openrouter_api_key: str = ""
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        """Parse comma-separated CORS origins into a list."""
+        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 
     class Config:
         env_file = ".env"

@@ -33,7 +33,7 @@ if [ ! -f ".env" ]; then
   cat > .env <<EOF
 DB_PASSWORD=$(openssl rand -base64 32)
 OPENROUTER_API_KEY=
-NEXT_PUBLIC_API_URL=https://$DOMAIN/api
+NEXT_PUBLIC_API_URL=https://$DOMAIN
 CORS_ORIGINS=https://$DOMAIN
 LOGTO_ENDPOINT=
 LOGTO_AUDIENCE=
@@ -55,7 +55,7 @@ systemctl reload nginx
 certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos -m "$EMAIL" || true
 
 sleep 5
-curl -sf "https://$DOMAIN/api/v1/health" && echo "✅ Backend healthy" || echo "⚠️  Check backend logs: docker logs dclaw-med-backend"
+curl -sf "http://127.0.0.1:8092/health" && echo "✅ Backend healthy" || echo "⚠️  Check backend logs: docker logs dclaw-med-backend"
 
 cat > /etc/cron.daily/dclaw-med-update <<'CRON'
 #!/bin/bash

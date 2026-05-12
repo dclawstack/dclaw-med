@@ -36,5 +36,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest,${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=https://med.dclawstack.io
           cache-from: type=gha
           cache-to: type=gha,mode=max

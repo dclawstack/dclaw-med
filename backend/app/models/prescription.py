@@ -32,4 +32,6 @@ class Prescription(Base, UUIDMixin, TimestampMixin):
         String(50), default="active"
     )  # active / completed / discontinued
 
-    patient: Mapped["Patient"] = relationship("Patient", back_populates="prescriptions")
+    patient: Mapped["Patient"] = relationship(
+        "Patient", back_populates="prescriptions", lazy="selectin"
+    )

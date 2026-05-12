@@ -30,4 +30,6 @@ class Diagnosis(Base, UUIDMixin, TimestampMixin):
         String(50), default="provisional"
     )  # provisional / confirmed / ruled_out
 
-    patient: Mapped["Patient"] = relationship("Patient", back_populates="diagnoses")
+    patient: Mapped["Patient"] = relationship(
+        "Patient", back_populates="diagnoses", lazy="selectin"
+    )

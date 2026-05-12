@@ -29,4 +29,6 @@ class ClinicalNote(Base, UUIDMixin, TimestampMixin):
     )  # user / ai
     template_used: Mapped[str | None] = mapped_column(String(100), nullable=True)
 
-    patient: Mapped["Patient"] = relationship("Patient", back_populates="clinical_notes")
+    patient: Mapped["Patient"] = relationship(
+        "Patient", back_populates="clinical_notes", lazy="selectin"
+    )
