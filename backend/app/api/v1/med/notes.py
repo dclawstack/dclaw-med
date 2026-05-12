@@ -5,6 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.auth import CLINICAL_TOOL, NOTE_WRITE, READ_ANY
 from app.core.database import get_db
 from app.repositories.clinical_note_repo import ClinicalNoteRepository
 from app.schemas.clinical_note import (
@@ -24,7 +25,9 @@ def _to_response(note) -> ClinicalNoteResponse:
     return ClinicalNoteResponse.model_validate(note)
 
 
-@router.post("/generate", response_model=NoteGenerateResponse)
+@router.post(
+    "/generate", response_model=NoteGenerateResponse, dependencies=[CLINICAL_TOOL]
+)
 async def generate_note_endpoint(
     request: NoteGenerateRequest,
 ) -> NoteGenerateResponse:
@@ -32,7 +35,7 @@ async def generate_note_endpoint(
     return await generate_note(request)
 
 
-@router.get("", response_model=list[ClinicalNoteResponse])
+@router.get("", response_model=list[ClinicalNoteResponse], dependencies=[READ_ANY])
 async def list_notes(
     patient_id: UUID | None = None,
     page: int = 1,
@@ -47,7 +50,12 @@ async def list_notes(
     return [_to_response(n) for n in notes]
 
 
-@router.post("", response_model=ClinicalNoteResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=ClinicalNoteResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[NOTE_WRITE],
+)
 async def create_note(
     data: ClinicalNoteCreate,
     db: AsyncSession = Depends(get_db),
@@ -58,7 +66,7 @@ async def create_note(
     return _to_response(note)
 
 
-@router.get("/{note_id}", response_model=ClinicalNoteResponse)
+@router.get("/{note_id}", response_model=ClinicalNoteResponse, dependencies=[READ_ANY])
 async def get_note(
     note_id: UUID,
     db: AsyncSession = Depends(get_db),
@@ -73,7 +81,7 @@ async def get_note(
     return _to_response(note)
 
 
-@router.put("/{note_id}", response_model=ClinicalNoteResponse)
+@router.put("/{note_id}", response_model=ClinicalNoteResponse, dependencies=[NOTE_WRITE])
 async def update_note(
     note_id: UUID,
     data: ClinicalNoteUpdate,
@@ -90,7 +98,11 @@ async def update_note(
     return _to_response(note)
 
 
-@router.delete("/{note_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{note_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[NOTE_WRITE],
+)
 async def delete_note(
     note_id: UUID,
     db: AsyncSession = Depends(get_db),

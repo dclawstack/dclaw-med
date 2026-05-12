@@ -1,6 +1,6 @@
 """Prescription and drug interaction schemas."""
 
-from datetime import date
+from datetime import date, datetime
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -43,8 +43,8 @@ class PrescriptionResponse(PrescriptionBase):
 
     id: UUID
     patient_id: UUID
-    created_at: str
-    updated_at: str
+    created_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True

@@ -1,6 +1,6 @@
 """Patient schemas."""
 
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 from uuid import UUID
 
@@ -34,8 +34,8 @@ class PatientResponse(PatientBase):
     """Patient response schema."""
 
     id: UUID
-    created_at: str
-    updated_at: str
+    created_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True
