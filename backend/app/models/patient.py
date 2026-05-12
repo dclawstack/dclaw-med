@@ -13,6 +13,7 @@ from app.models.base import Base, TimestampMixin, UUIDMixin
 if TYPE_CHECKING:
     from app.models.clinical_note import ClinicalNote
     from app.models.diagnosis import Diagnosis
+    from app.models.lab_result import LabResult
     from app.models.prescription import Prescription
     from app.models.symptom import Symptom
 
@@ -41,4 +42,7 @@ class Patient(Base, UUIDMixin, TimestampMixin):
     )
     clinical_notes: Mapped[list["ClinicalNote"]] = relationship(
         "ClinicalNote", back_populates="patient", lazy="selectin", cascade="all, delete-orphan"
+    )
+    lab_results: Mapped[list["LabResult"]] = relationship(
+        "LabResult", back_populates="patient", lazy="selectin", cascade="all, delete-orphan"
     )

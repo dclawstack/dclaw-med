@@ -400,6 +400,55 @@ export function lookupICD10(
   });
 }
 
+// ---------- Lab Results ----------
+
+export interface LabResultCreate {
+  patient_id: string;
+  test_name: string;
+  test_category: string;
+  result_value: string;
+  unit?: string | null;
+  reference_range?: string | null;
+  status?: string;
+  ordered_at: string;
+  resulted_at?: string | null;
+  notes?: string | null;
+}
+
+export interface LabResultResponse {
+  id: string;
+  patient_id: string;
+  test_name: string;
+  test_category: string;
+  result_value: string;
+  unit: string | null;
+  reference_range: string | null;
+  status: string;
+  ordered_at: string;
+  resulted_at: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export function listLabResults(patientId?: string): Promise<LabResultResponse[]> {
+  const q = patientId ? `?patient_id=${patientId}` : "";
+  return request<LabResultResponse[]>(`${MED}/lab-results${q}`);
+}
+
+export function createLabResult(
+  data: LabResultCreate,
+): Promise<LabResultResponse> {
+  return request<LabResultResponse>(`${MED}/lab-results`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteLabResult(id: string): Promise<void> {
+  return request<void>(`${MED}/lab-results/${id}`, { method: "DELETE" });
+}
+
 // ---------- Audit Logs (admin only) ----------
 
 export interface AuditLog {
