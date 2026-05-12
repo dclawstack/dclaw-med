@@ -11,8 +11,12 @@ import { Pill, Trash2 } from "lucide-react";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { useAuth } from "@/components/auth-provider";
+import { can } from "@/lib/permissions";
 
 export default function PrescriptionsPage() {
+  const { user } = useAuth();
+  const canWrite = can.writePrescription(user);
   const [prescriptions, setPrescriptions] = useState<PrescriptionResponse[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -78,7 +82,9 @@ export default function PrescriptionsPage() {
                   <TableCell className="capitalize">{p.route}</TableCell>
                   <TableCell><Badge variant={p.status === "active" ? "default" : "secondary"}>{p.status}</Badge></TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(p.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                    {canWrite && (
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(p.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
