@@ -1,16 +1,34 @@
+import { clearToken, getToken } from "./auth-storage";
+
 const RAW_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
 const API_BASE = RAW_BASE.replace(/\/$/, "");
 const MED = `${API_BASE}/api/v1/med`;
+const AUTH = `${API_BASE}/api/v1/auth`;
+
+export class ApiError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+  }
+}
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(path, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
-    },
-    cache: "no-store",
-  });
+  const token = getToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...((init?.headers as Record<string, string>) ?? {}),
+  };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(path, { ...init, headers, cache: "no-store" });
+
+  if (res.status === 401) {
+    clearToken();
+    if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+      window.location.href = "/login";
+    }
+  }
   if (!res.ok) {
     let detail = res.statusText;
     try {
@@ -19,10 +37,49 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     } catch {
       // ignore
     }
-    throw new Error(`${res.status} ${detail}`);
+    throw new ApiError(res.status, `${res.status} ${detail}`);
   }
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
+}
+
+// ---------- Auth ----------
+
+export interface LoginResponse {
+  access_token: string;
+  token_type: string;
+}
+
+export interface CurrentUser {
+  id: string;
+  email: string;
+  full_name: string;
+  role: "doctor" | "nurse" | "admin" | "receptionist" | string;
+  is_active: boolean;
+}
+
+export async function login(email: string, password: string): Promise<LoginResponse> {
+  const body = new URLSearchParams({ username: email, password });
+  const res = await fetch(`${AUTH}/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body,
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    let detail = res.statusText;
+    try {
+      detail = (await res.json()).detail ?? detail;
+    } catch {
+      // ignore
+    }
+    throw new ApiError(res.status, `${res.status} ${detail}`);
+  }
+  return (await res.json()) as LoginResponse;
+}
+
+export function getCurrentUser(): Promise<CurrentUser> {
+  return request<CurrentUser>(`${AUTH}/me`);
 }
 
 // ---------- Health ----------
