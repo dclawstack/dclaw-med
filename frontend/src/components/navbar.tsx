@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
 import { healthCheck } from "@/lib/api";
-import { Circle, GitBranch } from "lucide-react";
+import { Circle, GitBranch, LogOut } from "lucide-react";
+import { useAuth } from "@/components/auth-provider";
 
 export function Navbar() {
   const [status, setStatus] = useState<"online" | "offline" | "loading">("loading");
   const [version, setVersion] = useState("");
+  const { user, logout } = useAuth();
 
   useEffect(() => {
     healthCheck()
@@ -55,6 +57,20 @@ export function Navbar() {
             Repo
           </Button>
         </Link>
+        {user && (
+          <>
+            <div className="flex flex-col items-end leading-tight">
+              <span className="text-sm font-medium">{user.full_name}</span>
+              <span className="text-xs text-muted-foreground capitalize">
+                {user.role}
+              </span>
+            </div>
+            <Button variant="ghost" size="sm" onClick={logout}>
+              <LogOut className="w-4 h-4 mr-1" />
+              Sign out
+            </Button>
+          </>
+        )}
       </div>
     </header>
   );
