@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { APP_NAME, APP_COLOR } from "@/lib/tokens";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/components/auth-provider";
+import { can } from "@/lib/permissions";
 import {
   Activity,
   ClipboardList,
@@ -13,6 +15,7 @@ import {
   Pill,
   Search,
   Settings,
+  ShieldCheck,
   Stethoscope,
 } from "lucide-react";
 
@@ -28,6 +31,8 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { user } = useAuth();
+  const showAudit = can.viewAudit(user);
 
   return (
     <aside className="w-64 border-r bg-card flex flex-col">
@@ -65,6 +70,20 @@ export function Sidebar() {
             </Link>
           );
         })}
+        {showAudit && (
+          <Link
+            href="/audit"
+            className={cn(
+              "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+              pathname === "/audit" || pathname.startsWith("/audit/")
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            )}
+          >
+            <ShieldCheck className="w-4 h-4" />
+            Audit Trail
+          </Link>
+        )}
       </nav>
       <div className="p-3 border-t">
         <Link
