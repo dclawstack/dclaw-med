@@ -77,19 +77,27 @@ async def client(test_engine: AsyncEngine) -> AsyncGenerator[AsyncClient, None]:
     app.state.engine = prev_engine
 
 
-async def _auth_headers(client: AsyncClient, role: str) -> dict[str, str]:
-    """Register a fresh user with the given role and return an Authorization header."""
+async def _auth_headers(
+    client: AsyncClient, engine: AsyncEngine, role: str
+) -> dict[str, str]:
+    """Create a user directly (bypassing the admin-only register endpoint) and log in."""
+    from app.repositories.user_repo import UserRepository
+    from app.schemas.user import UserCreate
+
     email = f"{role}@example.com"
     password = "test-password-1"
-    await client.post(
-        "/api/v1/auth/register",
-        json={
-            "email": email,
-            "password": password,
-            "full_name": f"{role.title()} User",
-            "role": role,
-        },
-    )
+    Session = async_sessionmaker(engine, expire_on_commit=False)
+    async with Session() as db:
+        repo = UserRepository(db)
+        if not await repo.get_by_email(email):
+            await repo.create(
+                UserCreate(
+                    email=email,
+                    password=password,
+                    full_name=f"{role.title()} User",
+                    role=role,
+                )
+            )
     login = await client.post(
         "/api/v1/auth/login",
         data={"username": email, "password": password},
@@ -99,23 +107,31 @@ async def _auth_headers(client: AsyncClient, role: str) -> dict[str, str]:
 
 
 @pytest_asyncio.fixture
-async def admin_headers(client: AsyncClient) -> dict[str, str]:
-    return await _auth_headers(client, "admin")
+async def admin_headers(
+    client: AsyncClient, test_engine: AsyncEngine
+) -> dict[str, str]:
+    return await _auth_headers(client, test_engine, "admin")
 
 
 @pytest_asyncio.fixture
-async def doctor_headers(client: AsyncClient) -> dict[str, str]:
-    return await _auth_headers(client, "doctor")
+async def doctor_headers(
+    client: AsyncClient, test_engine: AsyncEngine
+) -> dict[str, str]:
+    return await _auth_headers(client, test_engine, "doctor")
 
 
 @pytest_asyncio.fixture
-async def nurse_headers(client: AsyncClient) -> dict[str, str]:
-    return await _auth_headers(client, "nurse")
+async def nurse_headers(
+    client: AsyncClient, test_engine: AsyncEngine
+) -> dict[str, str]:
+    return await _auth_headers(client, test_engine, "nurse")
 
 
 @pytest_asyncio.fixture
-async def receptionist_headers(client: AsyncClient) -> dict[str, str]:
-    return await _auth_headers(client, "receptionist")
+async def receptionist_headers(
+    client: AsyncClient, test_engine: AsyncEngine
+) -> dict[str, str]:
+    return await _auth_headers(client, test_engine, "receptionist")
 
 
 @pytest_asyncio.fixture

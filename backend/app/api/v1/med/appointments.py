@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import APPOINTMENT_WRITE, READ_ANY
 from app.core.database import get_db
 from app.repositories.appointment_repo import AppointmentRepository
+from app.repositories.user_repo import UserRepository
 from app.schemas.appointment import (
     AppointmentCreate,
     AppointmentResponse,
@@ -18,10 +19,26 @@ from app.schemas.appointment import (
 
 router = APIRouter()
 
+PROVIDER_ROLES = ("doctor", "admin")
+
 
 def _day_range(day: date) -> tuple[datetime, datetime]:
     start = datetime.combine(day, time.min, tzinfo=timezone.utc)
     return start, start + timedelta(days=1)
+
+
+async def _ensure_valid_provider(db: AsyncSession, provider_id: UUID) -> None:
+    user = await UserRepository(db).get_by_id(provider_id)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Provider user not found",
+        )
+    if not user.is_active or user.role not in PROVIDER_ROLES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Provider must be an active doctor or admin",
+        )
 
 
 @router.get("", response_model=list[AppointmentResponse], dependencies=[READ_ANY])
@@ -60,7 +77,8 @@ async def create_appointment(
     data: AppointmentCreate,
     db: AsyncSession = Depends(get_db),
 ) -> AppointmentResponse:
-    """Create an appointment. Rejects 409 if it overlaps another active slot."""
+    """Create an appointment. 422 if provider isn't a doctor/admin; 409 on slot overlap."""
+    await _ensure_valid_provider(db, data.provider_id)
     repo = AppointmentRepository(db)
     overlap = await repo.find_overlap(
         provider_id=data.provider_id,
@@ -113,6 +131,8 @@ async def update_appointment(
     new_duration = data.duration_minutes or appt.duration_minutes
     new_provider = data.provider_id or appt.provider_id
     new_status = data.status or appt.status
+    if data.provider_id is not None:
+        await _ensure_valid_provider(db, data.provider_id)
     if new_status == "scheduled":
         overlap = await repo.find_overlap(
             provider_id=new_provider,

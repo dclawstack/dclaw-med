@@ -180,3 +180,35 @@ async def test_providers_endpoint_returns_doctors_and_admins(
 async def test_appointments_list_requires_auth(client: AsyncClient) -> None:
     res = await client.get("/api/v1/med/appointments")
     assert res.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_create_rejects_non_provider_role(
+    client: AsyncClient,
+    receptionist_headers: dict[str, str],
+    nurse_headers: dict[str, str],
+    patient_id: str,
+) -> None:
+    # Use the nurse's user id as provider — should be rejected
+    me = await client.get("/api/v1/auth/me", headers=nurse_headers)
+    nurse_id = me.json()["id"]
+    res = await client.post(
+        "/api/v1/med/appointments",
+        headers=receptionist_headers,
+        json=_payload(patient_id, nurse_id),
+    )
+    assert res.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_create_rejects_unknown_provider(
+    client: AsyncClient,
+    receptionist_headers: dict[str, str],
+    patient_id: str,
+) -> None:
+    res = await client.post(
+        "/api/v1/med/appointments",
+        headers=receptionist_headers,
+        json=_payload(patient_id, "00000000-0000-0000-0000-000000000000"),
+    )
+    assert res.status_code == 422
