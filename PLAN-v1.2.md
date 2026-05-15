@@ -64,7 +64,7 @@ Before implementing any v1.2 feature, verify:
 - **Frontend:** Simplified patient-facing UI showing medications, appointments, lab results, and doctor's notes.
 - **Files to touch:** `backend/app/api/v1/patient_portal.py`, `frontend/src/app/patient-portal/page.tsx`
 
-#### 6. Drug Allergy Alerts
+#### 6. Drug Allergy Alerts ✅
 **Description:** Alert when prescribing a medication the patient is allergic to.
 - **Backend:** Add `Allergy` model (`id`, `patient_id`, `allergen`, `severity`, `reaction`). When creating a prescription, check patient's allergies against the medication name. Return warning in response if match found.
 - **Frontend:** Red alert banner in prescription dialog if allergy detected.

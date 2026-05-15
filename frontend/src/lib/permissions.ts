@@ -21,6 +21,7 @@ export const can = {
   writeLabResult: (u: RoleHolder) => hasRole(u, ["admin", "doctor", "nurse"]),
   writeAppointment: (u: RoleHolder) =>
     hasRole(u, ["admin", "doctor", "receptionist"]),
+  writeAllergy: (u: RoleHolder) => hasRole(u, ["admin", "doctor", "nurse"]),
   useClinicalTool: (u: RoleHolder) => hasRole(u, ["admin", "doctor", "nurse"]),
   viewAudit: (u: RoleHolder) => hasRole(u, ["admin"]),
 };
