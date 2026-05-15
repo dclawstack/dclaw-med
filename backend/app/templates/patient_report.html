@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Patient Report — {{ patient.name }}</title>
+  <style>
+    @page { size: A4; margin: 16mm 14mm; }
+    body { font-family: "Liberation Sans", sans-serif; color: #111; font-size: 11pt; line-height: 1.4; }
+    h1 { font-size: 18pt; margin: 0 0 4pt; }
+    h2 { font-size: 12pt; margin: 14pt 0 4pt; padding-bottom: 2pt; border-bottom: 1px solid #888; }
+    .meta { color: #555; font-size: 10pt; margin-bottom: 12pt; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4pt 16pt; margin-bottom: 4pt; }
+    .grid div span { color: #666; }
+    table { width: 100%; border-collapse: collapse; margin-top: 4pt; }
+    th, td { text-align: left; padding: 4pt 6pt; border-bottom: 1px solid #ddd; vertical-align: top; font-size: 10pt; }
+    th { background: #f3f4f6; font-weight: 600; }
+    .empty { color: #888; font-style: italic; font-size: 10pt; }
+    .severity-anaphylaxis, .severity-severe { color: #b91c1c; font-weight: 600; }
+    .severity-moderate { color: #b45309; }
+    .footer { position: running(footer); font-size: 9pt; color: #666; text-align: center; }
+    @page { @bottom-center { content: element(footer); } }
+  </style>
+</head>
+<body>
+  <div class="footer">
+    DClaw Med · Generated {{ generated_at }} · Confidential
+  </div>
+
+  <h1>{{ patient.name }}</h1>
+  <div class="meta">
+    Medical Record Number: <strong>{{ patient.medical_record_number }}</strong>
+  </div>
+
+  <h2>Demographics</h2>
+  <div class="grid">
+    <div><span>Date of birth: </span>{{ patient.date_of_birth }}</div>
+    <div><span>Gender: </span>{{ patient.gender|capitalize }}</div>
+    <div><span>Registered: </span>{{ patient.created_at.strftime("%Y-%m-%d") }}</div>
+  </div>
+
+  <h2>Allergies</h2>
+  {% if allergies %}
+    <table>
+      <thead><tr><th>Allergen</th><th>Severity</th><th>Reaction</th></tr></thead>
+      <tbody>
+        {% for a in allergies %}
+        <tr>
+          <td>{{ a.allergen }}</td>
+          <td class="severity-{{ a.severity }}">{{ a.severity|capitalize }}</td>
+          <td>{{ a.reaction or "—" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="empty">No known allergies on file.</p>
+  {% endif %}
+
+  <h2>Diagnoses</h2>
+  {% if diagnoses %}
+    <table>
+      <thead><tr><th>ICD-10</th><th>Name</th><th>Status</th><th>Recorded</th></tr></thead>
+      <tbody>
+        {% for d in diagnoses %}
+        <tr>
+          <td>{{ d.icd10_code }}</td>
+          <td>{{ d.name }}</td>
+          <td>{{ d.status|capitalize }}</td>
+          <td>{{ d.created_at.strftime("%Y-%m-%d") }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="empty">No diagnoses recorded.</p>
+  {% endif %}
+
+  <h2>Active Prescriptions</h2>
+  {% if prescriptions %}
+    <table>
+      <thead><tr><th>Medication</th><th>Dosage</th><th>Frequency</th><th>Route</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for p in prescriptions %}
+        <tr>
+          <td>{{ p.medication_name }}</td>
+          <td>{{ p.dosage }}</td>
+          <td>{{ p.frequency }}</td>
+          <td>{{ p.route }}</td>
+          <td>{{ p.status|capitalize }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="empty">No prescriptions recorded.</p>
+  {% endif %}
+
+  <h2>Recent Lab Results</h2>
+  {% if lab_results %}
+    <table>
+      <thead><tr><th>Test</th><th>Category</th><th>Result</th><th>Reference</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for l in lab_results %}
+        <tr>
+          <td>{{ l.test_name }}</td>
+          <td>{{ l.test_category }}</td>
+          <td>{{ l.result_value }}{% if l.unit %} {{ l.unit }}{% endif %}</td>
+          <td>{{ l.reference_range or "—" }}</td>
+          <td>{{ l.status|capitalize }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="empty">No lab results on file.</p>
+  {% endif %}
+
+  <h2>Clinical Notes</h2>
+  {% if clinical_notes %}
+    {% for n in clinical_notes %}
+      <div style="margin-top: 8pt; page-break-inside: avoid;">
+        <div style="font-size: 10pt; color: #555;">
+          <strong>{{ n.note_type|capitalize }}</strong> · {{ n.created_at.strftime("%Y-%m-%d %H:%M") }}
+        </div>
+        <div style="white-space: pre-wrap; margin-top: 2pt;">{{ n.content }}</div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <p class="empty">No clinical notes recorded.</p>
+  {% endif %}
+</body>
+</html>

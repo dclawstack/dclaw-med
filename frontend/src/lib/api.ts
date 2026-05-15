@@ -173,6 +173,31 @@ export function deletePatient(id: string): Promise<void> {
   return request<void>(`${MED}/patients/${id}`, { method: "DELETE" });
 }
 
+export async function fetchPatientReport(id: string): Promise<Blob> {
+  const token = getToken();
+  const res = await fetch(`${MED}/patients/${id}/report`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    cache: "no-store",
+  });
+  if (res.status === 401) {
+    clearToken();
+    if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+      window.location.href = "/login";
+    }
+  }
+  if (!res.ok) {
+    let detail = res.statusText;
+    try {
+      const body = await res.json();
+      detail = body.detail ?? JSON.stringify(body);
+    } catch {
+      // ignore
+    }
+    throw new ApiError(res.status, `${res.status} ${detail}`);
+  }
+  return await res.blob();
+}
+
 // ---------- Symptoms ----------
 
 export interface SymptomCreate {

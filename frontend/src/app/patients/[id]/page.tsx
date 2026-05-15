@@ -11,6 +11,7 @@ import {
   listNotes, createNote, deleteNote,
   listLabResults, createLabResult, deleteLabResult,
   listAllergies, createAllergy, deleteAllergy,
+  fetchPatientReport,
   PatientResponse, SymptomResponse, DiagnosisResponse, PrescriptionResponse, ClinicalNoteResponse, LabResultResponse,
   AllergyResponse, AllergyWarning,
 } from "@/lib/api";
@@ -25,7 +26,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Trash2, Save, User, Calendar, Stethoscope, Pill, FileText, ClipboardList, FlaskConical, AlertTriangle, ShieldAlert } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Save, User, Calendar, Stethoscope, Pill, FileText, ClipboardList, FlaskConical, AlertTriangle, ShieldAlert, FileDown } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
 import { can } from "@/lib/permissions";
 
@@ -91,6 +92,27 @@ export default function PatientDetailPage() {
     }
   }
 
+  const [generatingReport, setGeneratingReport] = useState(false);
+
+  async function handleGenerateReport() {
+    if (!patient) return;
+    setGeneratingReport(true);
+    let url: string | null = null;
+    try {
+      const blob = await fetchPatientReport(patient.id);
+      url = URL.createObjectURL(blob);
+      window.open(url, "_blank", "noopener");
+    } catch (err) {
+      toast.error("Failed to generate report", {
+        description: err instanceof Error ? err.message : "",
+      });
+    } finally {
+      setGeneratingReport(false);
+      // Revoke a little later so the new tab has time to load the blob URL.
+      if (url) setTimeout(() => URL.revokeObjectURL(url!), 30_000);
+    }
+  }
+
   if (loading) {
     return (
       <div className="max-w-5xl mx-auto space-y-6">
@@ -125,9 +147,19 @@ export default function PatientDetailPage() {
             <p className="text-sm text-muted-foreground">{patient.medical_record_number} · {patient.gender} · DOB {patient.date_of_birth}</p>
           </div>
         </div>
-        {canWritePatient && (
-          <Button variant="outline" onClick={() => setEditMode((v) => !v)}>{editMode ? "Cancel" : "Edit"}</Button>
-        )}
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={handleGenerateReport}
+            disabled={generatingReport}
+          >
+            <FileDown className="w-4 h-4 mr-2" />
+            {generatingReport ? "Generating…" : "Generate Report"}
+          </Button>
+          {canWritePatient && (
+            <Button variant="outline" onClick={() => setEditMode((v) => !v)}>{editMode ? "Cancel" : "Edit"}</Button>
+          )}
+        </div>
       </div>
 
       {editMode && (

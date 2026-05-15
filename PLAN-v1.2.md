@@ -70,7 +70,7 @@ Before implementing any v1.2 feature, verify:
 - **Frontend:** Red alert banner in prescription dialog if allergy detected.
 - **Files to touch:** `backend/app/models/allergy.py`, `backend/app/repositories/allergy_repo.py`, `backend/app/api/v1/med/prescriptions.py`, `frontend/src/app/patients/[id]/PrescriptionTab.tsx`
 
-#### 7. Medical Report Generation (PDF)
+#### 7. Medical Report Generation (PDF) ✅
 **Description:** Generate printable medical reports for patients.
 - **Backend:** Use `jinja2` templates + `weasyprint` or HTML-to-PDF to generate PDFs. `GET /api/v1/med/patients/{id}/report` returns PDF.
 - **Frontend:** "Generate Report" button on patient detail. Opens PDF in new tab.
