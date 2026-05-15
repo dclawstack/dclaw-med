@@ -38,7 +38,7 @@ Before implementing any v1.2 feature, verify:
 - **Frontend:** Login page. Route guards based on role. Show/hide actions per role (e.g., nurses can view but not prescribe).
 - **Files to touch:** `backend/app/core/auth.py`, `backend/app/models/user.py`, `frontend/src/app/login/page.tsx`, all routers
 
-#### 2. Audit Logging (HIPAA Compliance)
+#### 2. Audit Logging (HIPAA Compliance) ✅
 **Description:** Every read/write of patient data is logged immutably.
 - **Backend:** Add `AuditLog` model (`id`, `user_id`, `action`, `entity_type`, `entity_id`, `old_value`, `new_value`, `timestamp`). Create `AuditLogRepository`. Middleware or dependency that logs all patient-related requests.
 - **Frontend:** Admin-only "Audit Trail" page to view logs.
