@@ -7,6 +7,7 @@ import {
   deletePatient,
   PatientResponse,
   PatientCreate,
+  PatientFilters,
 } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,7 +40,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import Link from "next/link";
-import { Database, Plus, Trash2, Users, Eye } from "lucide-react";
+import { Database, Plus, Trash2, Users, Eye, Search, X } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
 import { can } from "@/lib/permissions";
 
@@ -55,16 +56,47 @@ export default function PatientsPage() {
   const [mrn, setMrn] = useState("");
   const [creating, setCreating] = useState(false);
 
-  async function load() {
+  const [searchQ, setSearchQ] = useState("");
+  const [dobFrom, setDobFrom] = useState("");
+  const [dobTo, setDobTo] = useState("");
+  const [diagnosisCode, setDiagnosisCode] = useState("");
+  const [filtersApplied, setFiltersApplied] = useState(false);
+
+  async function load(filters: PatientFilters = {}) {
     setLoading(true);
     try {
-      const data = await listPatients();
+      const data = await listPatients(1, 50, filters);
       setPatients(data);
     } catch (err) {
       toast.error("Failed to load patients", { description: err instanceof Error ? err.message : "" });
     } finally {
       setLoading(false);
     }
+  }
+
+  function currentFilters(): PatientFilters {
+    return {
+      q: searchQ.trim() || undefined,
+      dob_from: dobFrom || undefined,
+      dob_to: dobTo || undefined,
+      diagnosis_code: diagnosisCode.trim() || undefined,
+    };
+  }
+
+  function applyFilters(e?: React.FormEvent) {
+    e?.preventDefault();
+    const f = currentFilters();
+    setFiltersApplied(Object.values(f).some(Boolean));
+    load(f);
+  }
+
+  function clearFilters() {
+    setSearchQ("");
+    setDobFrom("");
+    setDobTo("");
+    setDiagnosisCode("");
+    setFiltersApplied(false);
+    load();
   }
 
   useEffect(() => {
@@ -82,7 +114,8 @@ export default function PatientsPage() {
         gender: gender as "male" | "female" | "other" | "unknown",
         medical_record_number: mrn.trim(),
       });
-      setPatients((prev) => [...prev, created]);
+      // Re-run the current filter set so the new patient appears (or is filtered out) correctly.
+      await load(currentFilters());
       toast.success("Patient created", { description: created.name });
       setName(""); setDob(""); setMrn(""); setGender("male"); setDialogOpen(false);
     } catch (err) {
@@ -157,16 +190,60 @@ export default function PatientsPage() {
       </div>
 
       <Card>
+        <CardContent className="pt-6">
+          <form onSubmit={applyFilters} className="grid grid-cols-1 md:grid-cols-5 gap-3">
+            <div className="md:col-span-2 space-y-1">
+              <Label htmlFor="p-search">Name or MRN</Label>
+              <Input
+                id="p-search"
+                value={searchQ}
+                onChange={(e) => setSearchQ(e.target.value)}
+                placeholder="anderson, MRN-2026…"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="p-dob-from">DOB from</Label>
+              <Input id="p-dob-from" type="date" value={dobFrom} onChange={(e) => setDobFrom(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="p-dob-to">DOB to</Label>
+              <Input id="p-dob-to" type="date" value={dobTo} onChange={(e) => setDobTo(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="p-dx">Diagnosis (ICD-10)</Label>
+              <Input id="p-dx" value={diagnosisCode} onChange={(e) => setDiagnosisCode(e.target.value)} placeholder="I10" />
+            </div>
+            <div className="md:col-span-5 flex justify-end gap-2">
+              {filtersApplied && (
+                <Button type="button" variant="outline" onClick={clearFilters}>
+                  <X className="w-4 h-4 mr-1" />Clear
+                </Button>
+              )}
+              <Button type="submit"><Search className="w-4 h-4 mr-1" />Search</Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card>
         {loading ? (
           <CardContent className="p-6 space-y-2"><Skeleton className="h-8 w-full" /><Skeleton className="h-8 w-full" /><Skeleton className="h-8 w-full" /></CardContent>
         ) : patients.length === 0 ? (
           <CardContent className="p-8 text-center space-y-3">
             <Users className="w-10 h-10 text-muted-foreground mx-auto" />
             <p className="text-sm text-muted-foreground">
-              {canWrite ? "No patients yet. Create your first patient." : "No patients yet."}
+              {filtersApplied
+                ? "No patients match these filters."
+                : canWrite
+                ? "No patients yet. Create your first patient."
+                : "No patients yet."}
             </p>
-            {canWrite && (
-              <Button onClick={() => setDialogOpen(true)}><Plus className="w-4 h-4 mr-2" />Create Patient</Button>
+            {filtersApplied ? (
+              <Button variant="outline" onClick={clearFilters}><X className="w-4 h-4 mr-1" />Clear filters</Button>
+            ) : (
+              canWrite && (
+                <Button onClick={() => setDialogOpen(true)}><Plus className="w-4 h-4 mr-2" />Create Patient</Button>
+              )
             )}
           </CardContent>
         ) : (
