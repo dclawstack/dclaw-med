@@ -198,12 +198,12 @@ async def test_prescription_no_warning_when_unrelated(
 
 
 @pytest.mark.asyncio
-async def test_prescription_creates_even_when_allergy_matches(
+async def test_prescription_flags_cross_class_allergen(
     client: AsyncClient,
     doctor_headers: dict[str, str],
     patient_id: str,
 ) -> None:
-    """The alert is informational — clinical judgement still rests with the prescriber."""
+    """A 'Penicillin' allergy must flag a script for any other penicillin-class drug."""
     await client.post(
         "/api/v1/med/allergies",
         headers=doctor_headers,
@@ -226,37 +226,41 @@ async def test_prescription_creates_even_when_allergy_matches(
         },
     )
     assert res.status_code == 201
-    # Penicillin substring won't match amoxicillin — confirm the substring matcher is honest
-    # (we'll fix this once we wire in a real drug-class lookup, but for now we don't want
-    # false-confidence here).
-    assert res.json()["allergy_warnings"] == []
+    warnings = res.json()["allergy_warnings"]
+    assert len(warnings) == 1
+    assert warnings[0]["allergen"] == "Penicillin"
 
-    # Now add an explicit "amoxicillin" allergy and verify the next script flags it.
+
+@pytest.mark.asyncio
+async def test_prescription_no_cross_class_false_positive(
+    client: AsyncClient,
+    doctor_headers: dict[str, str],
+    patient_id: str,
+) -> None:
+    """Penicillin allergy should NOT flag a statin — different class."""
     await client.post(
         "/api/v1/med/allergies",
         headers=doctor_headers,
         json={
             "patient_id": patient_id,
-            "allergen": "Amoxicillin",
+            "allergen": "Penicillin",
             "severity": "severe",
         },
     )
-    res2 = await client.post(
+    res = await client.post(
         "/api/v1/med/prescriptions",
         headers=doctor_headers,
         json={
             "patient_id": patient_id,
-            "medication_name": "Amoxicillin 500mg",
-            "dosage": "500mg",
-            "frequency": "bid",
+            "medication_name": "Atorvastatin 20mg",
+            "dosage": "20mg",
+            "frequency": "daily",
             "route": "oral",
             "start_date": "2026-05-15",
         },
     )
-    assert res2.status_code == 201
-    warnings = res2.json()["allergy_warnings"]
-    assert len(warnings) == 1
-    assert warnings[0]["allergen"] == "Amoxicillin"
+    assert res.status_code == 201
+    assert res.json()["allergy_warnings"] == []
 
 
 @pytest.mark.asyncio

@@ -6,7 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.auth import LAB_WRITE, READ_ANY
+from app.core.auth import LAB_WRITE, CLINICIAN_READ
 from app.core.database import get_db
 from app.repositories.lab_result_repo import LabResultRepository
 from app.schemas.lab_result import LabResultCreate, LabResultResponse, LabResultUpdate
@@ -14,7 +14,7 @@ from app.schemas.lab_result import LabResultCreate, LabResultResponse, LabResult
 router = APIRouter()
 
 
-@router.get("", response_model=list[LabResultResponse], dependencies=[READ_ANY])
+@router.get("", response_model=list[LabResultResponse], dependencies=[CLINICIAN_READ])
 async def list_lab_results(
     patient_id: UUID | None = None,
     page: int = 1,
@@ -46,7 +46,7 @@ async def create_lab_result(
 
 
 @router.get(
-    "/{lab_result_id}", response_model=LabResultResponse, dependencies=[READ_ANY]
+    "/{lab_result_id}", response_model=LabResultResponse, dependencies=[CLINICIAN_READ]
 )
 async def get_lab_result(
     lab_result_id: UUID,

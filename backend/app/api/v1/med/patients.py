@@ -6,7 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.auth import PATIENT_WRITE, READ_ANY
+from app.core.auth import PATIENT_WRITE, CLINICIAN_READ
 from app.core.database import get_db
 from app.repositories.patient_repo import PatientRepository
 from app.schemas.patient import PatientCreate, PatientResponse, PatientUpdate
@@ -20,7 +20,7 @@ def _to_response(patient) -> PatientResponse:
     return PatientResponse.model_validate(patient)
 
 
-@router.get("", response_model=list[PatientResponse], dependencies=[READ_ANY])
+@router.get("", response_model=list[PatientResponse], dependencies=[CLINICIAN_READ])
 async def list_patients(
     page: int = 1,
     page_size: int = Query(default=20, ge=1, le=200),
@@ -68,7 +68,7 @@ async def create_patient(
     return _to_response(patient)
 
 
-@router.get("/{patient_id}", response_model=PatientResponse, dependencies=[READ_ANY])
+@router.get("/{patient_id}", response_model=PatientResponse, dependencies=[CLINICIAN_READ])
 async def get_patient(
     patient_id: UUID,
     db: AsyncSession = Depends(get_db),
@@ -134,7 +134,7 @@ async def delete_patient(
 
 @router.get(
     "/{patient_id}/report",
-    dependencies=[READ_ANY],
+    dependencies=[CLINICIAN_READ],
     responses={200: {"content": {"application/pdf": {}}}},
 )
 async def get_patient_report(
@@ -157,7 +157,7 @@ async def get_patient_report(
     )
 
 
-@router.get("/{patient_id}/history", dependencies=[READ_ANY])
+@router.get("/{patient_id}/history", dependencies=[CLINICIAN_READ])
 async def get_patient_history(
     patient_id: UUID,
     db: AsyncSession = Depends(get_db),

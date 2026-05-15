@@ -7,7 +7,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.auth import APPOINTMENT_WRITE, READ_ANY
+from app.core.auth import APPOINTMENT_WRITE, CLINICIAN_READ
 from app.core.database import get_db
 from app.repositories.appointment_repo import AppointmentRepository
 from app.repositories.user_repo import UserRepository
@@ -41,7 +41,7 @@ async def _ensure_valid_provider(db: AsyncSession, provider_id: UUID) -> None:
         )
 
 
-@router.get("", response_model=list[AppointmentResponse], dependencies=[READ_ANY])
+@router.get("", response_model=list[AppointmentResponse], dependencies=[CLINICIAN_READ])
 async def list_appointments(
     patient_id: UUID | None = None,
     provider_id: UUID | None = None,
@@ -95,7 +95,7 @@ async def create_appointment(
 
 
 @router.get(
-    "/{appointment_id}", response_model=AppointmentResponse, dependencies=[READ_ANY]
+    "/{appointment_id}", response_model=AppointmentResponse, dependencies=[CLINICIAN_READ]
 )
 async def get_appointment(
     appointment_id: UUID,

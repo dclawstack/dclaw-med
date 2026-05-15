@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.allergy import Allergy
 from app.schemas.allergy import AllergyCreate, AllergyUpdate
+from app.services.drug_classes import shared_classes
 
 
 class AllergyRepository:
@@ -43,12 +44,19 @@ class AllergyRepository:
     async def match_for_medication(
         self, patient_id: UUID, medication_name: str
     ) -> list[Allergy]:
-        """Return allergies whose allergen is contained in (or contains) the medication name.
+        """Return patient allergies that match the proposed medication.
 
-        Case-insensitive substring match on both sides — keeps the matcher simple
-        without requiring a drug database. Real-world use should swap this for a
-        proper drug-class lookup, but it's enough to surface obvious risks like
-        a patient allergic to "penicillin" being prescribed "amoxicillin".
+        Two-stage matcher:
+
+        1. Case-insensitive substring on the allergen and the med name. Catches
+           "Penicillin" allergy → "Penicillin V 500mg".
+        2. Drug-class cross-match via `app.services.drug_classes`. Catches the
+           commonly-missed case where the allergen and the medication don't
+           share text but belong to the same class — e.g. a "Penicillin"
+           allergy flagging "Amoxicillin 500mg".
+
+        Anything outside the curated class list still gets a fair shot via
+        stage 1; the class layer is purely additive.
         """
         med = medication_name.strip().lower()
         if not med:
@@ -61,6 +69,9 @@ class AllergyRepository:
             if not allergen:
                 continue
             if allergen in med or med in allergen:
+                matches.append(allergy)
+                continue
+            if shared_classes(allergen, med):
                 matches.append(allergy)
         return matches
 

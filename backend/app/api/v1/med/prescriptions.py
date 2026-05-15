@@ -6,7 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.auth import PRESCRIPTION_WRITE, READ_ANY
+from app.core.auth import PRESCRIPTION_WRITE, CLINICIAN_READ
 from app.core.database import get_db
 from app.repositories.allergy_repo import AllergyRepository
 from app.repositories.prescription_repo import PrescriptionRepository
@@ -21,7 +21,7 @@ from app.schemas.prescription import (
 router = APIRouter()
 
 
-@router.get("", response_model=list[PrescriptionResponse], dependencies=[READ_ANY])
+@router.get("", response_model=list[PrescriptionResponse], dependencies=[CLINICIAN_READ])
 async def list_prescriptions(
     patient_id: UUID | None = None,
     page: int = 1,
@@ -66,7 +66,7 @@ async def create_prescription(
 
 
 @router.get(
-    "/{prescription_id}", response_model=PrescriptionResponse, dependencies=[READ_ANY]
+    "/{prescription_id}", response_model=PrescriptionResponse, dependencies=[CLINICIAN_READ]
 )
 async def get_prescription(
     prescription_id: UUID,

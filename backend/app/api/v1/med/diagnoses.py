@@ -6,7 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.auth import DIAGNOSIS_WRITE, READ_ANY
+from app.core.auth import DIAGNOSIS_WRITE, CLINICIAN_READ
 from app.core.database import get_db
 from app.repositories.diagnosis_repo import DiagnosisRepository
 from app.schemas.diagnosis import DiagnosisCreate, DiagnosisResponse, DiagnosisUpdate
@@ -14,7 +14,7 @@ from app.schemas.diagnosis import DiagnosisCreate, DiagnosisResponse, DiagnosisU
 router = APIRouter()
 
 
-@router.get("", response_model=list[DiagnosisResponse], dependencies=[READ_ANY])
+@router.get("", response_model=list[DiagnosisResponse], dependencies=[CLINICIAN_READ])
 async def list_diagnoses(
     patient_id: UUID | None = None,
     page: int = 1,
@@ -45,7 +45,7 @@ async def create_diagnosis(
     return DiagnosisResponse.model_validate(diagnosis)
 
 
-@router.get("/{diagnosis_id}", response_model=DiagnosisResponse, dependencies=[READ_ANY])
+@router.get("/{diagnosis_id}", response_model=DiagnosisResponse, dependencies=[CLINICIAN_READ])
 async def get_diagnosis(
     diagnosis_id: UUID,
     db: AsyncSession = Depends(get_db),
