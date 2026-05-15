@@ -12,6 +12,7 @@ import {
   listPatients, listPrescriptions, listNotes, listDiagnoses,
   PatientResponse, PrescriptionResponse, ClinicalNoteResponse, DiagnosisResponse,
 } from "@/lib/api";
+import { TriageWidget } from "@/components/triage-widget";
 import {
   Activity,
   ArrowRight,
@@ -128,37 +129,39 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Recent Patients</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="space-y-2">
-              <Skeleton className="h-8 w-full" />
-              <Skeleton className="h-8 w-full" />
-              <Skeleton className="h-8 w-full" />
-            </div>
-          ) : patients.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No patients yet. Create your first patient to get started.</p>
-          ) : (
-            <div className="space-y-2">
-              {patients.slice(0, 5).map((p) => (
-                <div key={p.id} className="flex items-center justify-between py-1">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary">{p.medical_record_number}</Badge>
-                    <span className="text-sm font-medium">{p.name}</span>
-                    <span className="text-xs text-muted-foreground">{p.gender} · {p.date_of_birth}</span>
+      <div className="grid gap-4 md:grid-cols-2">
+        <TriageWidget />
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Recent Patients</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+              </div>
+            ) : patients.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No patients yet. Create your first patient to get started.</p>
+            ) : (
+              <div className="space-y-2">
+                {patients.slice(0, 5).map((p) => (
+                  <div key={p.id} className="flex items-center justify-between py-1">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary">{p.medical_record_number}</Badge>
+                      <span className="text-sm font-medium">{p.name}</span>
+                    </div>
+                    <Link href={`/patients/${p.id}`}>
+                      <Button variant="ghost" size="sm">View</Button>
+                    </Link>
                   </div>
-                  <Link href={`/patients/${p.id}`}>
-                    <Button variant="ghost" size="sm">View</Button>
-                  </Link>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       <Card>
         <CardHeader><CardTitle className="text-sm">System Status</CardTitle></CardHeader>

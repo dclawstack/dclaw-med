@@ -134,6 +134,64 @@ async def receptionist_headers(
     return await _auth_headers(client, test_engine, "receptionist")
 
 
+async def _make_patient_user(
+    client: AsyncClient,
+    engine: AsyncEngine,
+    email: str,
+    patient_id: str | None,
+) -> dict[str, str]:
+    """Create a patient-role user and return Authorization headers.
+
+    Lives in conftest so multiple test files (portal, triage, ...) can share
+    the same patient login.
+    """
+    from app.repositories.user_repo import UserRepository
+    from app.schemas.user import UserCreate
+
+    password = "patient-portal-1"
+    Session = async_sessionmaker(engine, expire_on_commit=False)
+    async with Session() as db:
+        repo = UserRepository(db)
+        existing = await repo.get_by_email(email)
+        if existing is None:
+            await repo.create(
+                UserCreate(
+                    email=email,
+                    password=password,
+                    full_name="Portal User",
+                    role="patient",
+                    patient_id=patient_id,
+                )
+            )
+        elif existing.patient_id != patient_id:
+            await repo.set_patient_link(existing, patient_id)
+    login = await client.post(
+        "/api/v1/auth/login",
+        data={"username": email, "password": password},
+    )
+    return {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+
+@pytest_asyncio.fixture
+async def patient_headers(
+    client: AsyncClient,
+    test_engine: AsyncEngine,
+    patient_id: str,
+) -> dict[str, str]:
+    return await _make_patient_user(
+        client, test_engine, "linked-patient@example.com", patient_id
+    )
+
+
+@pytest_asyncio.fixture
+async def unlinked_patient_headers(
+    client: AsyncClient, test_engine: AsyncEngine
+) -> dict[str, str]:
+    return await _make_patient_user(
+        client, test_engine, "unlinked-patient@example.com", None
+    )
+
+
 @pytest_asyncio.fixture
 async def patient_id(client: AsyncClient, doctor_headers: dict[str, str]) -> str:
     """A patient created by a doctor; useful for medical-record tests."""

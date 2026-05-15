@@ -6,6 +6,8 @@ from app.schemas.symptom import (
     DifferentialDiagnosis,
     SymptomAnalysisRequest,
     SymptomAnalysisResponse,
+    TriageRequest,
+    TriageResponse,
 )
 
 # Mock knowledge base for symptom pattern matching
@@ -45,6 +47,14 @@ SYMPTOM_PATTERNS = {
         ],
         "tests": ["ECG", "Troponin I/T", "Chest X-ray", "D-dimer", "CT pulmonary angiography"],
         "urgency": "high",
+        "department": "Emergency Department",
+        "red_flags": [
+            "Crushing or pressure-like pain",
+            "Pain radiating to arm, jaw, or back",
+            "Diaphoresis (cold sweat) or nausea",
+            "Shortness of breath at rest",
+            "Syncope or near-syncope",
+        ],
     },
     "fever": {
         "diagnoses": [
@@ -75,6 +85,14 @@ SYMPTOM_PATTERNS = {
         ],
         "tests": ["CBC with differential", "Blood cultures", "Urinalysis", "CRP", "Procalcitonin"],
         "urgency": "medium",
+        "department": "Primary Care",
+        "red_flags": [
+            "Temperature ≥ 39.5°C / 103°F",
+            "Stiff neck or photophobia",
+            "Altered mental status",
+            "Persistent fever > 5 days",
+            "Rash, especially non-blanching",
+        ],
     },
     "headache": {
         "diagnoses": [
@@ -105,6 +123,14 @@ SYMPTOM_PATTERNS = {
         ],
         "tests": ["Non-contrast head CT", "CBC", "Erythrocyte sedimentation rate", " Neurological exam"],
         "urgency": "medium",
+        "department": "Primary Care",
+        "red_flags": [
+            "Thunderclap onset (worst headache of life)",
+            "Fever with neck stiffness",
+            "Focal neurological deficits or seizure",
+            "Recent head trauma",
+            "Sudden change in vision",
+        ],
     },
     "abdominal pain": {
         "diagnoses": [
@@ -135,6 +161,14 @@ SYMPTOM_PATTERNS = {
         ],
         "tests": ["CBC", "Comprehensive metabolic panel", "Lipase", "CT abdomen/pelvis", "Urinalysis"],
         "urgency": "high",
+        "department": "Emergency Department",
+        "red_flags": [
+            "Rigid or board-like abdomen",
+            "Severe pain unresponsive to position changes",
+            "Blood in stool or vomit",
+            "Persistent vomiting and inability to tolerate fluids",
+            "Pain with high fever",
+        ],
     },
     "shortness of breath": {
         "diagnoses": [
@@ -165,6 +199,14 @@ SYMPTOM_PATTERNS = {
         ],
         "tests": ["ABG", "BNP", "Chest X-ray", "Spirometry", "Echocardiogram"],
         "urgency": "high",
+        "department": "Emergency Department",
+        "red_flags": [
+            "Cyanosis (bluish lips or extremities)",
+            "Difficulty speaking in full sentences",
+            "Chest pain with dyspnea",
+            "Severe or sudden onset",
+            "Audible wheezing or stridor at rest",
+        ],
     },
 }
 
@@ -191,31 +233,76 @@ DEFAULT_RESPONSE = {
     ],
     "tests": ["CBC", "Comprehensive metabolic panel", "Physical examination"],
     "urgency": "low",
+    "department": "Primary Care",
+    "red_flags": [
+        "Symptoms persist beyond two weeks",
+        "Unexplained weight loss",
+        "Worsening trajectory despite rest",
+    ],
 }
+
+
+_URGENCY_GUIDANCE = {
+    "critical": (
+        "Call emergency services or go to the nearest emergency department "
+        "immediately."
+    ),
+    "high": (
+        "Seek urgent care today. If symptoms worsen or any red flag appears, "
+        "go to the emergency department."
+    ),
+    "medium": (
+        "Schedule a visit with your primary-care clinician within the next "
+        "few days. Watch for the red flags listed above."
+    ),
+    "low": (
+        "Schedule a routine appointment when convenient. Self-care and "
+        "monitoring are reasonable in the interim."
+    ),
+}
+
+
+def _match_pattern(symptoms: str) -> dict:
+    """Find the first pattern that mentions one of our keyword fragments,
+    or fall back to the default response."""
+    text = symptoms.lower()
+    for keyword, data in SYMPTOM_PATTERNS.items():
+        if keyword in text:
+            return data
+    return DEFAULT_RESPONSE
 
 
 async def analyze_symptoms(
     request: SymptomAnalysisRequest,
 ) -> SymptomAnalysisResponse:
     """Analyze symptoms and return differential diagnoses."""
-    symptoms_lower = request.symptoms.lower()
-
-    matched = None
-    for keyword, data in SYMPTOM_PATTERNS.items():
-        if keyword in symptoms_lower:
-            matched = data
-            break
-
-    if matched is None:
-        matched = DEFAULT_RESPONSE
-
+    matched = _match_pattern(request.symptoms)
     diagnoses = matched["diagnoses"][: request.max_results]
-    urgency = matched["urgency"]
 
     return SymptomAnalysisResponse(
         patient_id=request.patient_id,
         primary_symptoms=[s.strip() for s in request.symptoms.split(",") if s.strip()],
         differential_diagnoses=diagnoses,
         recommended_tests=matched["tests"],
-        urgency_level=urgency,
+        urgency_level=matched["urgency"],
+    )
+
+
+async def triage(request: TriageRequest) -> TriageResponse:
+    """Triage a free-text symptom description.
+
+    The output is a routing recommendation (urgency + department + red flags)
+    rather than a clinical diagnosis. Returns the top 3 differentials so the
+    caller has some context for the recommendation without burying them in a
+    full diagnostic list.
+    """
+    matched = _match_pattern(request.symptoms)
+    summary = _URGENCY_GUIDANCE.get(matched["urgency"], _URGENCY_GUIDANCE["low"])
+    return TriageResponse(
+        urgency_level=matched["urgency"],
+        suggested_department=matched["department"],
+        recommended_tests=matched["tests"],
+        red_flags=matched["red_flags"],
+        differential_diagnoses=matched["diagnoses"][:3],
+        summary=summary,
     )

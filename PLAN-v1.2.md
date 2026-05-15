@@ -89,7 +89,7 @@ Before implementing any v1.2 feature, verify:
 - **Backend:** FHIR resource mappers for Patient, Condition, MedicationRequest, Observation. `GET /api/v1/med/fhir/Patient/{id}` etc.
 - **Files to touch:** `backend/app/services/fhir_mapper.py`, `backend/app/api/v1/med/fhir.py`
 
-#### 10. AI Triage Assistant
+#### 10. AI Triage Assistant ✅
 **Description:** Patient describes symptoms via chat; AI suggests urgency level and department.
 - **Backend:** Extend `symptom_analyzer.py` with triage logic. Return `urgency_level`, `suggested_department`, `recommended_tests`.
 - **Frontend:** Triage widget on dashboard.
