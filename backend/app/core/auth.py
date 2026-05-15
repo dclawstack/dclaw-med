@@ -57,7 +57,7 @@ def require_role(*allowed_roles: str) -> Callable[[User], User]:
 
 # Any logged-in clinician — patients are excluded from /api/v1/med/* so they
 # can't read other patients' records.
-READ_ANY = Depends(require_role("admin", "doctor", "nurse", "receptionist"))
+CLINICIAN_READ = Depends(require_role("admin", "doctor", "nurse", "receptionist"))
 PORTAL_ONLY = Depends(require_role("patient"))
 PATIENT_WRITE = Depends(require_role("admin", "doctor", "receptionist"))
 SYMPTOM_WRITE = Depends(require_role("admin", "doctor", "nurse"))

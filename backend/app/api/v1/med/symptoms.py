@@ -6,7 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.auth import CLINICAL_TOOL, READ_ANY, SYMPTOM_WRITE
+from app.core.auth import CLINICAL_TOOL, CLINICIAN_READ, SYMPTOM_WRITE
 from app.core.database import get_db
 from app.repositories.symptom_repo import SymptomRepository
 from app.schemas.symptom import (
@@ -33,7 +33,7 @@ async def analyze_symptoms_endpoint(
     return await analyze_symptoms(request)
 
 
-@router.get("", response_model=list[SymptomResponse], dependencies=[READ_ANY])
+@router.get("", response_model=list[SymptomResponse], dependencies=[CLINICIAN_READ])
 async def list_symptoms(
     patient_id: UUID | None = None,
     page: int = 1,
@@ -64,7 +64,7 @@ async def create_symptom(
     return SymptomResponse.model_validate(symptom)
 
 
-@router.get("/{symptom_id}", response_model=SymptomResponse, dependencies=[READ_ANY])
+@router.get("/{symptom_id}", response_model=SymptomResponse, dependencies=[CLINICIAN_READ])
 async def get_symptom(
     symptom_id: UUID,
     db: AsyncSession = Depends(get_db),

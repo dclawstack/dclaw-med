@@ -125,6 +125,20 @@ async def read_me(current: User = Depends(get_current_user)) -> UserResponse:
     return UserResponse.model_validate(current)
 
 
+@router.get(
+    "/users",
+    response_model=list[UserResponse],
+    dependencies=[Depends(require_role("admin"))],
+)
+async def list_users(
+    role: str | None = None,
+    db: AsyncSession = Depends(get_db),
+) -> list[UserResponse]:
+    """List user accounts, optionally filtered by role. Admin-only."""
+    users = await UserRepository(db).list_users(role=role)
+    return [UserResponse.model_validate(u) for u in users]
+
+
 @router.get("/providers", response_model=list[ProviderResponse])
 async def list_providers(
     db: AsyncSession = Depends(get_db),

@@ -5,7 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.auth import CLINICAL_TOOL, NOTE_WRITE, READ_ANY
+from app.core.auth import CLINICAL_TOOL, NOTE_WRITE, CLINICIAN_READ
 from app.core.database import get_db
 from app.repositories.clinical_note_repo import ClinicalNoteRepository
 from app.schemas.clinical_note import (
@@ -35,7 +35,7 @@ async def generate_note_endpoint(
     return await generate_note(request)
 
 
-@router.get("", response_model=list[ClinicalNoteResponse], dependencies=[READ_ANY])
+@router.get("", response_model=list[ClinicalNoteResponse], dependencies=[CLINICIAN_READ])
 async def list_notes(
     patient_id: UUID | None = None,
     page: int = 1,
@@ -66,7 +66,7 @@ async def create_note(
     return _to_response(note)
 
 
-@router.get("/{note_id}", response_model=ClinicalNoteResponse, dependencies=[READ_ANY])
+@router.get("/{note_id}", response_model=ClinicalNoteResponse, dependencies=[CLINICIAN_READ])
 async def get_note(
     note_id: UUID,
     db: AsyncSession = Depends(get_db),

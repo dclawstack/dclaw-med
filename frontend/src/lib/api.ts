@@ -83,6 +83,11 @@ export function getCurrentUser(): Promise<CurrentUser> {
   return request<CurrentUser>(`${AUTH}/me`);
 }
 
+export function listUsers(role?: string): Promise<CurrentUser[]> {
+  const q = role ? `?role=${encodeURIComponent(role)}` : "";
+  return request<CurrentUser[]>(`${AUTH}/users${q}`);
+}
+
 export interface Provider {
   id: string;
   full_name: string;

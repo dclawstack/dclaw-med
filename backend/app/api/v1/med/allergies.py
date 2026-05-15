@@ -6,7 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.auth import ALLERGY_WRITE, READ_ANY
+from app.core.auth import ALLERGY_WRITE, CLINICIAN_READ
 from app.core.database import get_db
 from app.repositories.allergy_repo import AllergyRepository
 from app.schemas.allergy import AllergyCreate, AllergyResponse, AllergyUpdate
@@ -14,7 +14,7 @@ from app.schemas.allergy import AllergyCreate, AllergyResponse, AllergyUpdate
 router = APIRouter()
 
 
-@router.get("", response_model=list[AllergyResponse], dependencies=[READ_ANY])
+@router.get("", response_model=list[AllergyResponse], dependencies=[CLINICIAN_READ])
 async def list_allergies(
     patient_id: UUID = Query(..., description="Patient to list allergies for"),
     page: int = 1,
@@ -54,7 +54,7 @@ async def create_allergy(
     return AllergyResponse.model_validate(allergy)
 
 
-@router.get("/{allergy_id}", response_model=AllergyResponse, dependencies=[READ_ANY])
+@router.get("/{allergy_id}", response_model=AllergyResponse, dependencies=[CLINICIAN_READ])
 async def get_allergy(
     allergy_id: UUID,
     db: AsyncSession = Depends(get_db),

@@ -197,7 +197,7 @@ async def test_notes_create_denied_for_receptionist(
     assert res.status_code == 403
 
 
-# ---------- ICD-10: READ_ANY (everyone authenticated) ----------
+# ---------- ICD-10: CLINICIAN_READ (everyone authenticated) ----------
 
 @pytest.mark.asyncio
 async def test_icd10_allowed_for_receptionist(

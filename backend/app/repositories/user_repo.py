@@ -59,3 +59,11 @@ class UserRepository:
             .order_by(User.full_name)
         )
         return list(result.scalars().all())
+
+    async def list_users(self, role: str | None = None) -> list[User]:
+        """List all users, optionally filtered by role. Newest first."""
+        stmt = select(User).order_by(User.created_at.desc())
+        if role is not None:
+            stmt = stmt.where(User.role == role)
+        result = await self.db.execute(stmt)
+        return list(result.scalars().all())

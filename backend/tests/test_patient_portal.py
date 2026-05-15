@@ -287,6 +287,40 @@ async def test_non_admin_cannot_link_user(
 
 
 @pytest.mark.asyncio
+async def test_list_users_admin_only(
+    client: AsyncClient,
+    admin_headers: dict[str, str],
+    doctor_headers: dict[str, str],
+    unlinked_patient_headers: dict[str, str],
+) -> None:
+    # Sanity check the unlinked patient fixture inserted a user before we list.
+    assert unlinked_patient_headers is not None
+
+    res = await client.get("/api/v1/auth/users", headers=admin_headers)
+    assert res.status_code == 200
+    emails = [u["email"] for u in res.json()]
+    assert "admin@example.com" in emails
+
+    forbidden = await client.get("/api/v1/auth/users", headers=doctor_headers)
+    assert forbidden.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_list_users_filtered_by_role(
+    client: AsyncClient,
+    admin_headers: dict[str, str],
+    unlinked_patient_headers: dict[str, str],
+) -> None:
+    assert unlinked_patient_headers is not None
+    res = await client.get(
+        "/api/v1/auth/users?role=patient", headers=admin_headers
+    )
+    assert res.status_code == 200
+    roles = {u["role"] for u in res.json()}
+    assert roles == {"patient"}
+
+
+@pytest.mark.asyncio
 async def test_cannot_link_clinician_to_patient(
     client: AsyncClient,
     admin_headers: dict[str, str],

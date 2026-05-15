@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   Stethoscope,
   HeartPulse,
+  UserCog,
 } from "lucide-react";
 
 const clinicianNav = [
@@ -80,18 +81,32 @@ export function Sidebar() {
           );
         })}
         {showAudit && !isPatient && (
-          <Link
-            href="/audit"
-            className={cn(
-              "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-              pathname === "/audit" || pathname.startsWith("/audit/")
-                ? "bg-primary/10 text-primary"
-                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-            )}
-          >
-            <ShieldCheck className="w-4 h-4" />
-            Audit Trail
-          </Link>
+          <>
+            <Link
+              href="/audit"
+              className={cn(
+                "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                pathname === "/audit" || pathname.startsWith("/audit/")
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              )}
+            >
+              <ShieldCheck className="w-4 h-4" />
+              Audit Trail
+            </Link>
+            <Link
+              href="/admin/users"
+              className={cn(
+                "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                pathname === "/admin/users" || pathname.startsWith("/admin/users/")
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              )}
+            >
+              <UserCog className="w-4 h-4" />
+              Patient Accounts
+            </Link>
+          </>
         )}
       </nav>
       <div className="p-3 border-t">
