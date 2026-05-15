@@ -6,8 +6,9 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.auth import CLINICAL_TOOL, CLINICIAN_READ, SYMPTOM_WRITE
+from app.core.auth import CLINICAL_TOOL, CLINICIAN_READ, SYMPTOM_WRITE, get_current_user
 from app.core.database import get_db
+from app.models.user import User
 from app.repositories.symptom_repo import SymptomRepository
 from app.schemas.symptom import (
     SymptomAnalysisRequest,
@@ -15,8 +16,10 @@ from app.schemas.symptom import (
     SymptomCreate,
     SymptomResponse,
     SymptomUpdate,
+    TriageRequest,
+    TriageResponse,
 )
-from app.services.symptom_analyzer import analyze_symptoms
+from app.services.symptom_analyzer import analyze_symptoms, triage
 
 router = APIRouter()
 
@@ -31,6 +34,20 @@ async def analyze_symptoms_endpoint(
 ) -> SymptomAnalysisResponse:
     """Analyze symptoms and return differential diagnosis."""
     return await analyze_symptoms(request)
+
+
+@router.post("/triage", response_model=TriageResponse)
+async def triage_endpoint(
+    request: TriageRequest,
+    _current: User = Depends(get_current_user),
+) -> TriageResponse:
+    """Triage a free-text symptom description.
+
+    Available to any authenticated user (including patient role) so a patient
+    can self-triage before booking. Returns urgency, suggested department,
+    red flags, recommended tests, and a short guidance line.
+    """
+    return await triage(request)
 
 
 @router.get("", response_model=list[SymptomResponse], dependencies=[CLINICIAN_READ])

@@ -1,63 +1,11 @@
-"""Tests for the /api/v1/patient-portal/* router and the patient/clinician RBAC split."""
+"""Tests for the /api/v1/patient-portal/* router and the patient/clinician RBAC split.
+
+The patient/unlinked_patient header fixtures live in conftest.py so they can be
+reused by other test files (e.g. triage).
+"""
 
 import pytest
-import pytest_asyncio
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
-
-from app.repositories.user_repo import UserRepository
-from app.schemas.user import UserCreate
-
-
-async def _make_patient_user(
-    client: AsyncClient,
-    engine: AsyncEngine,
-    email: str,
-    patient_id: str | None,
-) -> dict[str, str]:
-    """Create a patient-role user and return Authorization headers."""
-    password = "patient-portal-1"
-    Session = async_sessionmaker(engine, expire_on_commit=False)
-    async with Session() as db:
-        repo = UserRepository(db)
-        existing = await repo.get_by_email(email)
-        if existing is None:
-            await repo.create(
-                UserCreate(
-                    email=email,
-                    password=password,
-                    full_name="Portal User",
-                    role="patient",
-                    patient_id=patient_id,
-                )
-            )
-        elif existing.patient_id != patient_id:
-            await repo.set_patient_link(existing, patient_id)
-    login = await client.post(
-        "/api/v1/auth/login",
-        data={"username": email, "password": password},
-    )
-    return {"Authorization": f"Bearer {login.json()['access_token']}"}
-
-
-@pytest_asyncio.fixture
-async def patient_headers(
-    client: AsyncClient,
-    test_engine: AsyncEngine,
-    patient_id: str,
-) -> dict[str, str]:
-    return await _make_patient_user(
-        client, test_engine, "linked-patient@example.com", patient_id
-    )
-
-
-@pytest_asyncio.fixture
-async def unlinked_patient_headers(
-    client: AsyncClient, test_engine: AsyncEngine
-) -> dict[str, str]:
-    return await _make_patient_user(
-        client, test_engine, "unlinked-patient@example.com", None
-    )
 
 
 @pytest.mark.asyncio

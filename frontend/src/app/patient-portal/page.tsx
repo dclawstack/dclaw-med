@@ -18,6 +18,7 @@ import {
 } from "@/lib/api";
 import { useAuth } from "@/components/auth-provider";
 import { isPatientUser } from "@/lib/permissions";
+import { TriageWidget } from "@/components/triage-widget";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -176,6 +177,11 @@ export default function PatientPortalPage() {
           </div>
         </div>
       )}
+
+      <TriageWidget
+        title="Not feeling well?"
+        hint="Describe what you're experiencing. We'll suggest where to go and what to watch for."
+      />
 
       <Tabs defaultValue="prescriptions">
         <TabsList>

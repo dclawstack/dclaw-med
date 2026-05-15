@@ -663,6 +663,39 @@ export function listAuditLogs(filters: AuditLogFilters = {}): Promise<AuditLog[]
   );
 }
 
+// ---------- Triage ----------
+
+export interface DifferentialDiagnosis {
+  condition: string;
+  icd10_code: string;
+  confidence: number;
+  reasoning: string;
+}
+
+export interface TriageRequest {
+  symptoms: string;
+  patient_id?: string;
+  age?: number;
+  sex?: string;
+}
+
+export interface TriageResponse {
+  urgency_level: "low" | "medium" | "high" | "critical" | string;
+  suggested_department: string;
+  recommended_tests: string[];
+  red_flags: string[];
+  differential_diagnoses: DifferentialDiagnosis[];
+  summary: string;
+  disclaimer: string;
+}
+
+export function triage(req: TriageRequest): Promise<TriageResponse> {
+  return request<TriageResponse>(`${MED}/symptoms/triage`, {
+    method: "POST",
+    body: JSON.stringify(req),
+  });
+}
+
 // ---------- Patient Portal (role=patient only) ----------
 
 const PORTAL = `${API_BASE}/api/v1/patient-portal`;

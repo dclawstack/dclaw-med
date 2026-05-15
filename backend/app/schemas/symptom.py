@@ -73,3 +73,29 @@ class SymptomAnalysisResponse(BaseModel):
         "This analysis is for informational purposes only and does not constitute "
         "medical advice. Always consult a qualified healthcare professional."
     )
+
+
+class TriageRequest(BaseModel):
+    """Free-text triage request. Works without a patient_id so it can be used
+    by patients (or anonymous-ish staff) before a registered record exists."""
+
+    symptoms: str = Field(..., min_length=1, description="Free-text symptom description")
+    patient_id: UUID | None = None
+    age: int | None = Field(default=None, ge=0, le=130)
+    sex: str | None = Field(default=None, pattern="^(male|female|other|unknown)$")
+
+
+class TriageResponse(BaseModel):
+    """Triage routing recommendation."""
+
+    urgency_level: str  # low / medium / high / critical
+    suggested_department: str  # e.g. "Emergency Department", "Primary Care"
+    recommended_tests: list[str]
+    red_flags: list[str]
+    differential_diagnoses: list[DifferentialDiagnosis]
+    summary: str  # human-readable guidance — what to do next
+    disclaimer: str = (
+        "Triage is for routing only and does not replace clinical evaluation. "
+        "If symptoms are severe, worsening, or include any red flags listed "
+        "above, seek emergency care immediately."
+    )
