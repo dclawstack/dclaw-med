@@ -126,10 +126,26 @@ export interface PatientResponse extends PatientCreate {
   updated_at: string;
 }
 
-export function listPatients(page = 1, pageSize = 20): Promise<PatientResponse[]> {
-  return request<PatientResponse[]>(
-    `${MED}/patients?page=${page}&page_size=${pageSize}`,
-  );
+export interface PatientFilters {
+  q?: string;
+  dob_from?: string;
+  dob_to?: string;
+  diagnosis_code?: string;
+}
+
+export function listPatients(
+  page = 1,
+  pageSize = 20,
+  filters: PatientFilters = {},
+): Promise<PatientResponse[]> {
+  const params = new URLSearchParams({
+    page: String(page),
+    page_size: String(pageSize),
+  });
+  for (const [key, value] of Object.entries(filters)) {
+    if (value) params.set(key, value);
+  }
+  return request<PatientResponse[]>(`${MED}/patients?${params.toString()}`);
 }
 
 export function getPatient(id: string): Promise<PatientResponse> {

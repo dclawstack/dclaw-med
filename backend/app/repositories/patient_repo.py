@@ -1,13 +1,44 @@
 """Patient repository."""
 
+from datetime import date
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import Select, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.models.diagnosis import Diagnosis
 from app.models.patient import Patient
 from app.schemas.patient import PatientCreate, PatientUpdate
+
+
+def _apply_filters(
+    stmt: Select,
+    q: str | None,
+    dob_from: date | None,
+    dob_to: date | None,
+    diagnosis_code: str | None,
+) -> Select:
+    """Apply search filters to a Patient select statement."""
+    if q:
+        # Postgres full-text on name OR case-insensitive substring on MRN — covers both
+        # "type a name" and "scan an MRN" usage.
+        tsquery = func.websearch_to_tsquery("english", q)
+        stmt = stmt.where(
+            or_(
+                Patient.name_tsv.op("@@")(tsquery),
+                Patient.medical_record_number.ilike(f"%{q}%"),
+            )
+        )
+    if dob_from is not None:
+        stmt = stmt.where(Patient.date_of_birth >= dob_from)
+    if dob_to is not None:
+        stmt = stmt.where(Patient.date_of_birth <= dob_to)
+    if diagnosis_code:
+        stmt = stmt.where(
+            Patient.diagnoses.any(Diagnosis.icd10_code == diagnosis_code)
+        )
+    return stmt
 
 
 class PatientRepository:
@@ -17,20 +48,35 @@ class PatientRepository:
         self.db = db
 
     async def list_patients(
-        self, page: int = 1, page_size: int = 20
+        self,
+        page: int = 1,
+        page_size: int = 20,
+        q: str | None = None,
+        dob_from: date | None = None,
+        dob_to: date | None = None,
+        diagnosis_code: str | None = None,
     ) -> tuple[list[Patient], int]:
-        """List patients with pagination. Returns (patients, total_count)."""
-        total_result = await self.db.execute(select(func.count()).select_from(Patient))
-        total = total_result.scalar() or 0
+        """List patients with pagination + optional search filters.
 
-        result = await self.db.execute(
-            select(Patient)
-            .order_by(Patient.created_at.desc())
+        Returns (patients, total_count).
+        """
+        count_stmt = _apply_filters(
+            select(func.count()).select_from(Patient),
+            q,
+            dob_from,
+            dob_to,
+            diagnosis_code,
+        )
+        total = (await self.db.execute(count_stmt)).scalar() or 0
+
+        stmt = _apply_filters(select(Patient), q, dob_from, dob_to, diagnosis_code)
+        stmt = (
+            stmt.order_by(Patient.created_at.desc())
             .offset((page - 1) * page_size)
             .limit(page_size)
         )
-        patients = list(result.scalars().all())
-        return patients, total
+        result = await self.db.execute(stmt)
+        return list(result.scalars().all()), total
 
     async def get_by_id(self, patient_id: UUID) -> Patient | None:
         """Get a patient by ID with all related data loaded."""

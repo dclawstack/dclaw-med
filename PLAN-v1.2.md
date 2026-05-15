@@ -76,7 +76,7 @@ Before implementing any v1.2 feature, verify:
 - **Frontend:** "Generate Report" button on patient detail. Opens PDF in new tab.
 - **Files to touch:** `backend/app/services/report_service.py`, `backend/app/templates/patient_report.html`, `backend/app/api/v1/med/patients.py`
 
-#### 8. Advanced Patient Search
+#### 8. Advanced Patient Search ✅
 **Description:** Search patients by name, MRN, DOB range, or diagnosis.
 - **Backend:** PostgreSQL `tsvector` on patient name. Composite search endpoint with filters.
 - **Frontend:** Search bar with filter dropdowns on patients page.

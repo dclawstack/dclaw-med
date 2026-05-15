@@ -1,8 +1,9 @@
 """Patient CRUD endpoints."""
 
+from datetime import date
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import PATIENT_WRITE, READ_ANY
@@ -21,12 +22,23 @@ def _to_response(patient) -> PatientResponse:
 @router.get("", response_model=list[PatientResponse], dependencies=[READ_ANY])
 async def list_patients(
     page: int = 1,
-    page_size: int = 20,
+    page_size: int = Query(default=20, ge=1, le=200),
+    q: str | None = Query(default=None, description="Search by name (tsvector) or MRN substring"),
+    dob_from: date | None = Query(default=None, description="Inclusive lower bound on date of birth"),
+    dob_to: date | None = Query(default=None, description="Inclusive upper bound on date of birth"),
+    diagnosis_code: str | None = Query(default=None, description="Filter to patients with a diagnosis at this ICD-10 code"),
     db: AsyncSession = Depends(get_db),
 ) -> list[PatientResponse]:
-    """List all patients with pagination."""
+    """List patients with pagination + optional search filters."""
     repo = PatientRepository(db)
-    patients, _total = await repo.list_patients(page=page, page_size=page_size)
+    patients, _total = await repo.list_patients(
+        page=page,
+        page_size=page_size,
+        q=q,
+        dob_from=dob_from,
+        dob_to=dob_to,
+        diagnosis_code=diagnosis_code,
+    )
     return [_to_response(p) for p in patients]
 
 

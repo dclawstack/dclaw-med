@@ -4,8 +4,8 @@ import uuid
 from datetime import date
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import JSON, Date, String
-from sqlalchemy.dialects.postgresql import UUID as PGUUID
+from sqlalchemy import Computed, Date, Index, JSON, String
+from sqlalchemy.dialects.postgresql import TSVECTOR, UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin, UUIDMixin
@@ -26,12 +26,22 @@ class Patient(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "patients"
 
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    date_of_birth: Mapped[date] = mapped_column(Date, nullable=False)
+    date_of_birth: Mapped[date] = mapped_column(Date, nullable=False, index=True)
     gender: Mapped[str] = mapped_column(String(20), nullable=False)
     medical_record_number: Mapped[str] = mapped_column(
         String(100), unique=True, nullable=False, index=True
     )
     contact_info: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    # Generated tsvector for full-text search on name. Stored so the GIN index can use it.
+    name_tsv: Mapped[str | None] = mapped_column(
+        TSVECTOR,
+        Computed("to_tsvector('english', coalesce(name, ''))", persisted=True),
+        nullable=True,
+    )
+
+    __table_args__ = (
+        Index("ix_patients_name_tsv", "name_tsv", postgresql_using="gin"),
+    )
 
     symptoms: Mapped[list["Symptom"]] = relationship(
         "Symptom", back_populates="patient", lazy="selectin", cascade="all, delete-orphan"
