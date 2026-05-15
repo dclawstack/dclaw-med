@@ -92,6 +92,21 @@ class PatientRepository:
         )
         return result.scalar_one_or_none()
 
+    async def get_for_report(self, patient_id: UUID) -> Patient | None:
+        """Get a patient with every related collection the report renders."""
+        result = await self.db.execute(
+            select(Patient)
+            .options(
+                selectinload(Patient.allergies),
+                selectinload(Patient.diagnoses),
+                selectinload(Patient.prescriptions),
+                selectinload(Patient.lab_results),
+                selectinload(Patient.clinical_notes),
+            )
+            .where(Patient.id == patient_id)
+        )
+        return result.scalar_one_or_none()
+
     async def get_by_mrn(self, medical_record_number: str) -> Patient | None:
         """Get a patient by medical record number."""
         result = await self.db.execute(

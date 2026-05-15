@@ -3,13 +3,14 @@
 from datetime import date
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import PATIENT_WRITE, READ_ANY
 from app.core.database import get_db
 from app.repositories.patient_repo import PatientRepository
 from app.schemas.patient import PatientCreate, PatientResponse, PatientUpdate
+from app.services.report_service import render_patient_pdf
 
 router = APIRouter()
 
@@ -129,6 +130,31 @@ async def delete_patient(
             detail="Patient not found",
         )
     await repo.delete(patient)
+
+
+@router.get(
+    "/{patient_id}/report",
+    dependencies=[READ_ANY],
+    responses={200: {"content": {"application/pdf": {}}}},
+)
+async def get_patient_report(
+    patient_id: UUID,
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    """Generate a printable PDF report for a patient."""
+    repo = PatientRepository(db)
+    patient = await repo.get_for_report(patient_id)
+    if patient is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Patient not found"
+        )
+    pdf_bytes = render_patient_pdf(patient)
+    filename = f"patient-{patient.medical_record_number}-report.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="{filename}"'},
+    )
 
 
 @router.get("/{patient_id}/history", dependencies=[READ_ANY])
