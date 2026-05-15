@@ -116,14 +116,14 @@ export interface PatientCreate {
   date_of_birth: string;
   gender: string;
   medical_record_number: string;
-  contact_info?: Record<string, unknown> | null;
+  contact_info?: any | null;
 }
 
 export interface PatientUpdate {
   name?: string;
   date_of_birth?: string;
   gender?: string;
-  contact_info?: Record<string, unknown> | null;
+  contact_info?: any | null;
 }
 
 export interface PatientResponse extends PatientCreate {
@@ -284,7 +284,7 @@ export interface DiagnosisCreate {
   description?: string | null;
   confidence?: number;
   status?: string;
-  differential?: Record<string, unknown>[] | null;
+  differential?: any[] | null;
 }
 
 export interface DiagnosisResponse {
@@ -295,7 +295,7 @@ export interface DiagnosisResponse {
   description: string | null;
   confidence: number;
   status: string;
-  differential: Record<string, unknown>[] | null;
+  differential: any[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -637,8 +637,8 @@ export interface AuditLog {
   action: string;
   entity_type: string;
   entity_id: string | null;
-  old_value: Record<string, unknown> | null;
-  new_value: Record<string, unknown> | null;
+  old_value: any | null;
+  new_value: any | null;
   timestamp: string;
 }
 
