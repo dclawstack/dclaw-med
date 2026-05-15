@@ -264,12 +264,23 @@ def bundle(
     resource_type: str,
     resources: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    """Wrap a list of FHIR resources in a `searchset` Bundle."""
+    """Wrap a list of FHIR resources in a `searchset` Bundle.
+
+    Each entry carries a `fullUrl` of the form `urn:uuid:<id>` so a consumer
+    can resolve references inside the Bundle without resolving them against
+    a server. This is the standard FHIR transient-Bundle convention.
+    """
     return {
         "resourceType": "Bundle",
         "type": "searchset",
         "total": len(resources),
-        "entry": [{"resource": r} for r in resources],
+        "entry": [
+            {
+                "fullUrl": f"urn:uuid:{r['id']}",
+                "resource": r,
+            }
+            for r in resources
+        ],
     }
 
 

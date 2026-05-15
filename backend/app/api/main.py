@@ -9,6 +9,7 @@ from app.api.routes import health
 from app.api.v1 import audit as audit_router
 from app.api.v1 import auth as auth_router
 from app.api.v1 import patient_portal as patient_portal_router
+from app.api.v1 import triage as triage_router
 from app.api.v1.med import router as med_router
 from app.core.audit_middleware import AuditMiddleware
 from app.core.config import settings
@@ -50,4 +51,5 @@ app.include_router(
     prefix="/api/v1/patient-portal",
     tags=["Patient Portal"],
 )
+app.include_router(triage_router.router, prefix="/api/v1/triage", tags=["Triage"])
 app.include_router(med_router, prefix="/api/v1/med")
