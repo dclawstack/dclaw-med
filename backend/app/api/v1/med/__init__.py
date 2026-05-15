@@ -7,6 +7,7 @@ from app.api.v1.med import (
     appointments,
     diagnoses,
     drugs,
+    fhir,
     icd10,
     lab_results,
     notes,
@@ -31,4 +32,5 @@ router.include_router(
     appointments.router, prefix="/appointments", tags=["Appointments"]
 )
 router.include_router(allergies.router, prefix="/allergies", tags=["Allergies"])
+router.include_router(fhir.router, prefix="/fhir", tags=["FHIR"])
 router.include_router(patients.router, prefix="/patients", tags=["Patients"])

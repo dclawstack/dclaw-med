@@ -84,7 +84,7 @@ Before implementing any v1.2 feature, verify:
 
 ### P2 — Could Have
 
-#### 9. HL7 FHIR Data Export
+#### 9. HL7 FHIR Data Export ✅
 **Description:** Export patient data in FHIR R4 format for interoperability.
 - **Backend:** FHIR resource mappers for Patient, Condition, MedicationRequest, Observation. `GET /api/v1/med/fhir/Patient/{id}` etc.
 - **Files to touch:** `backend/app/services/fhir_mapper.py`, `backend/app/api/v1/med/fhir.py`
