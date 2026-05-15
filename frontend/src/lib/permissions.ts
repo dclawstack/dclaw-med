@@ -11,6 +11,10 @@ function hasRole(user: RoleHolder, roles: readonly string[]): boolean {
   return roles.includes(user.role);
 }
 
+export const isPatientUser = (u: RoleHolder) => hasRole(u, ["patient"]);
+export const isClinicianUser = (u: RoleHolder) =>
+  hasRole(u, ["admin", "doctor", "nurse", "receptionist"]);
+
 export const can = {
   writePatient: (u: RoleHolder) =>
     hasRole(u, ["admin", "doctor", "receptionist"]),

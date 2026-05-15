@@ -58,7 +58,7 @@ Before implementing any v1.2 feature, verify:
 
 ### P1 — Should Have
 
-#### 5. Patient Portal (Read-Only)
+#### 5. Patient Portal (Read-Only) ✅
 **Description:** Patients can log in and view their own records (but not edit).
 - **Backend:** Separate router `/api/v1/patient-portal/` that filters by `current_user.patient_id`. Returns only own data.
 - **Frontend:** Simplified patient-facing UI showing medications, appointments, lab results, and doctor's notes.

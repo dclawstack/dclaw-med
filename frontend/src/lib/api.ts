@@ -54,8 +54,9 @@ export interface CurrentUser {
   id: string;
   email: string;
   full_name: string;
-  role: "doctor" | "nurse" | "admin" | "receptionist" | string;
+  role: "doctor" | "nurse" | "admin" | "receptionist" | "patient" | string;
   is_active: boolean;
+  patient_id: string | null;
 }
 
 export async function login(email: string, password: string): Promise<LoginResponse> {
@@ -655,4 +656,42 @@ export function listAuditLogs(filters: AuditLogFilters = {}): Promise<AuditLog[]
   return request<AuditLog[]>(
     `${API_BASE}/api/v1/audit${qs ? `?${qs}` : ""}`,
   );
+}
+
+// ---------- Patient Portal (role=patient only) ----------
+
+const PORTAL = `${API_BASE}/api/v1/patient-portal`;
+
+export function getMyPatient(): Promise<PatientResponse> {
+  return request<PatientResponse>(`${PORTAL}/me`);
+}
+
+export function getMyPrescriptions(): Promise<PrescriptionResponse[]> {
+  return request<PrescriptionResponse[]>(`${PORTAL}/me/prescriptions`);
+}
+
+export function getMyLabResults(): Promise<LabResultResponse[]> {
+  return request<LabResultResponse[]>(`${PORTAL}/me/lab-results`);
+}
+
+export function getMyNotes(): Promise<ClinicalNoteResponse[]> {
+  return request<ClinicalNoteResponse[]>(`${PORTAL}/me/notes`);
+}
+
+export function getMyAppointments(): Promise<AppointmentResponse[]> {
+  return request<AppointmentResponse[]>(`${PORTAL}/me/appointments`);
+}
+
+export function getMyAllergies(): Promise<AllergyResponse[]> {
+  return request<AllergyResponse[]>(`${PORTAL}/me/allergies`);
+}
+
+export function linkUserToPatient(
+  userId: string,
+  patientId: string | null,
+): Promise<CurrentUser> {
+  return request<CurrentUser>(`${AUTH}/users/${userId}/patient`, {
+    method: "PATCH",
+    body: JSON.stringify({ patient_id: patientId }),
+  });
 }

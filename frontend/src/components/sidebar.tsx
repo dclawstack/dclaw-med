@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { APP_NAME, APP_COLOR } from "@/lib/tokens";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth-provider";
-import { can } from "@/lib/permissions";
+import { can, isPatientUser } from "@/lib/permissions";
 import {
   Activity,
   Calendar,
@@ -18,9 +18,10 @@ import {
   Settings,
   ShieldCheck,
   Stethoscope,
+  HeartPulse,
 } from "lucide-react";
 
-const navItems = [
+const clinicianNav = [
   { href: "/", label: "Dashboard", icon: Home },
   { href: "/patients", label: "Patients", icon: Database },
   { href: "/appointments", label: "Appointments", icon: Calendar },
@@ -31,10 +32,16 @@ const navItems = [
   { href: "/icd10", label: "ICD-10", icon: Search },
 ];
 
+const patientNav = [
+  { href: "/patient-portal", label: "My Records", icon: HeartPulse },
+];
+
 export function Sidebar() {
   const pathname = usePathname();
   const { user } = useAuth();
   const showAudit = can.viewAudit(user);
+  const isPatient = isPatientUser(user);
+  const navItems = isPatient ? patientNav : clinicianNav;
 
   return (
     <aside className="w-64 border-r bg-card flex flex-col">
@@ -72,7 +79,7 @@ export function Sidebar() {
             </Link>
           );
         })}
-        {showAudit && (
+        {showAudit && !isPatient && (
           <Link
             href="/audit"
             className={cn(

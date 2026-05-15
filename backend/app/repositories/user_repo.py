@@ -34,8 +34,18 @@ class UserRepository:
             full_name=data.full_name,
             role=data.role,
             is_active=True,
+            patient_id=data.patient_id,
         )
         self.db.add(user)
+        await self.db.commit()
+        await self.db.refresh(user)
+        return user
+
+    async def set_patient_link(
+        self, user: User, patient_id: UUID | None
+    ) -> User:
+        """Set or clear the patient link on an existing user."""
+        user.patient_id = patient_id
         await self.db.commit()
         await self.db.refresh(user)
         return user
