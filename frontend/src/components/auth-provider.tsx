@@ -22,6 +22,20 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 const PUBLIC_ROUTES = new Set(["/login"]);
+const PORTAL_HOME = "/patient-portal";
+
+function landingFor(user: CurrentUser): string {
+  return user.role === "patient" ? PORTAL_HOME : "/";
+}
+
+function isPathAllowedForPatient(pathname: string): boolean {
+  return (
+    pathname === PORTAL_HOME ||
+    pathname.startsWith(`${PORTAL_HOME}/`) ||
+    pathname === "/settings" ||
+    pathname === "/login"
+  );
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<CurrentUser | null>(null);
@@ -37,7 +51,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     getCurrentUser()
-      .then((u) => setUser(u))
+      .then((u) => {
+        setUser(u);
+        // Keep patients out of clinician pages even if they paste in a URL.
+        if (u.role === "patient" && !isPathAllowedForPatient(pathname)) {
+          router.replace(PORTAL_HOME);
+        }
+      })
       .catch(() => {
         clearToken();
         router.replace("/login");
@@ -52,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(tok.access_token);
       const me = await getCurrentUser();
       setUser(me);
-      router.replace("/");
+      router.replace(landingFor(me));
     },
     [router],
   );

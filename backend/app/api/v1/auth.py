@@ -1,5 +1,7 @@
 """Authentication endpoints: register, login, current user."""
 
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,8 +10,15 @@ from app.core.auth import get_current_user, require_role
 from app.core.database import get_db
 from app.core.security import create_access_token, verify_password
 from app.models.user import User
+from app.repositories.patient_repo import PatientRepository
 from app.repositories.user_repo import UserRepository
-from app.schemas.user import ProviderResponse, Token, UserCreate, UserResponse
+from app.schemas.user import (
+    ProviderResponse,
+    Token,
+    UserCreate,
+    UserPatientLinkRequest,
+    UserResponse,
+)
 
 router = APIRouter()
 
@@ -32,7 +41,59 @@ async def register(
             status_code=status.HTTP_409_CONFLICT,
             detail="Email already registered",
         )
+    # Patient accounts MUST be linked to a real patient at creation; clinician
+    # accounts MUST NOT carry a patient_id. The portal relies on this invariant.
+    if data.role == "patient":
+        if data.patient_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="patient_id is required when role is 'patient'",
+            )
+        patient = await PatientRepository(db).get_by_id(data.patient_id)
+        if patient is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="patient_id does not match an existing patient",
+            )
+    elif data.patient_id is not None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="patient_id is only valid for role 'patient'",
+        )
     user = await repo.create(data)
+    return UserResponse.model_validate(user)
+
+
+@router.patch(
+    "/users/{user_id}/patient",
+    response_model=UserResponse,
+    dependencies=[Depends(require_role("admin"))],
+)
+async def link_user_to_patient(
+    user_id: UUID,
+    body: UserPatientLinkRequest,
+    db: AsyncSession = Depends(get_db),
+) -> UserResponse:
+    """Set or clear the patient link on a user. Admin-only."""
+    user_repo = UserRepository(db)
+    user = await user_repo.get_by_id(user_id)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
+    if body.patient_id is not None:
+        if user.role != "patient":
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Only users with role 'patient' can be linked to a patient",
+            )
+        patient = await PatientRepository(db).get_by_id(body.patient_id)
+        if patient is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="patient_id does not match an existing patient",
+            )
+    user = await user_repo.set_patient_link(user, body.patient_id)
     return UserResponse.model_validate(user)
 
 
