@@ -305,10 +305,21 @@ export function listPrescriptions(
   return request<PrescriptionResponse[]>(`${MED}/prescriptions${q}`);
 }
 
+export interface AllergyWarning {
+  allergy_id: string;
+  allergen: string;
+  severity: string;
+  reaction: string | null;
+}
+
+export interface PrescriptionCreateResponse extends PrescriptionResponse {
+  allergy_warnings: AllergyWarning[];
+}
+
 export function createPrescription(
   data: PrescriptionCreate,
-): Promise<PrescriptionResponse> {
-  return request<PrescriptionResponse>(`${MED}/prescriptions`, {
+): Promise<PrescriptionCreateResponse> {
+  return request<PrescriptionCreateResponse>(`${MED}/prescriptions`, {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -316,6 +327,44 @@ export function createPrescription(
 
 export function deletePrescription(id: string): Promise<void> {
   return request<void>(`${MED}/prescriptions/${id}`, { method: "DELETE" });
+}
+
+// ---------- Allergies ----------
+
+export interface AllergyResponse {
+  id: string;
+  patient_id: string;
+  allergen: string;
+  severity: string;
+  reaction: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AllergyCreate {
+  patient_id: string;
+  allergen: string;
+  severity: string;
+  reaction?: string | null;
+}
+
+export function listAllergies(patientId: string): Promise<AllergyResponse[]> {
+  return request<AllergyResponse[]>(
+    `${MED}/allergies?patient_id=${patientId}`,
+  );
+}
+
+export function createAllergy(
+  data: AllergyCreate,
+): Promise<AllergyResponse> {
+  return request<AllergyResponse>(`${MED}/allergies`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteAllergy(id: string): Promise<void> {
+  return request<void>(`${MED}/allergies/${id}`, { method: "DELETE" });
 }
 
 // ---------- Clinical Notes ----------

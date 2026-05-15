@@ -5,6 +5,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas.allergy import AllergyWarning
+
 
 class PrescriptionBase(BaseModel):
     """Base prescription fields."""
@@ -47,6 +49,12 @@ class PrescriptionResponse(PrescriptionBase):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class PrescriptionCreateResponse(PrescriptionResponse):
+    """Prescription response augmented with allergy warnings on create."""
+
+    allergy_warnings: list[AllergyWarning] = Field(default_factory=list)
 
 
 class DrugInteraction(BaseModel):

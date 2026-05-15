@@ -38,7 +38,7 @@ Before implementing any v1.2 feature, verify:
 - **Frontend:** Login page. Route guards based on role. Show/hide actions per role (e.g., nurses can view but not prescribe).
 - **Files to touch:** `backend/app/core/auth.py`, `backend/app/models/user.py`, `frontend/src/app/login/page.tsx`, all routers
 
-#### 2. Audit Logging (HIPAA Compliance)
+#### 2. Audit Logging (HIPAA Compliance) ✅
 **Description:** Every read/write of patient data is logged immutably.
 - **Backend:** Add `AuditLog` model (`id`, `user_id`, `action`, `entity_type`, `entity_id`, `old_value`, `new_value`, `timestamp`). Create `AuditLogRepository`. Middleware or dependency that logs all patient-related requests.
 - **Frontend:** Admin-only "Audit Trail" page to view logs.
@@ -64,7 +64,7 @@ Before implementing any v1.2 feature, verify:
 - **Frontend:** Simplified patient-facing UI showing medications, appointments, lab results, and doctor's notes.
 - **Files to touch:** `backend/app/api/v1/patient_portal.py`, `frontend/src/app/patient-portal/page.tsx`
 
-#### 6. Drug Allergy Alerts
+#### 6. Drug Allergy Alerts ✅
 **Description:** Alert when prescribing a medication the patient is allergic to.
 - **Backend:** Add `Allergy` model (`id`, `patient_id`, `allergen`, `severity`, `reaction`). When creating a prescription, check patient's allergies against the medication name. Return warning in response if match found.
 - **Frontend:** Red alert banner in prescription dialog if allergy detected.

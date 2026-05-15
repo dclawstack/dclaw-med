@@ -10,7 +10,9 @@ import {
   listPrescriptions, createPrescription, deletePrescription,
   listNotes, createNote, deleteNote,
   listLabResults, createLabResult, deleteLabResult,
+  listAllergies, createAllergy, deleteAllergy,
   PatientResponse, SymptomResponse, DiagnosisResponse, PrescriptionResponse, ClinicalNoteResponse, LabResultResponse,
+  AllergyResponse, AllergyWarning,
 } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +25,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Trash2, Save, User, Calendar, Stethoscope, Pill, FileText, ClipboardList, FlaskConical } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Save, User, Calendar, Stethoscope, Pill, FileText, ClipboardList, FlaskConical, AlertTriangle, ShieldAlert } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
 import { can } from "@/lib/permissions";
 
@@ -43,6 +45,7 @@ export default function PatientDetailPage() {
   const [prescriptions, setPrescriptions] = useState<PrescriptionResponse[]>([]);
   const [notes, setNotes] = useState<ClinicalNoteResponse[]>([]);
   const [labResults, setLabResults] = useState<LabResultResponse[]>([]);
+  const [allergies, setAllergies] = useState<AllergyResponse[]>([]);
 
   useEffect(() => {
     if (!id) return;
@@ -54,8 +57,9 @@ export default function PatientDetailPage() {
       listPrescriptions(id),
       listNotes(id),
       listLabResults(id),
+      listAllergies(id),
     ])
-      .then(([p, s, d, rx, n, l]) => {
+      .then(([p, s, d, rx, n, l, a]) => {
         setPatient(p);
         setEditName(p.name);
         setEditDob(p.date_of_birth);
@@ -65,6 +69,7 @@ export default function PatientDetailPage() {
         setPrescriptions(rx);
         setNotes(n);
         setLabResults(l);
+        setAllergies(a);
       })
       .catch((err) => toast.error("Failed to load patient", { description: err.message }))
       .finally(() => setLoading(false));
@@ -157,6 +162,22 @@ export default function PatientDetailPage() {
         </Card>
       )}
 
+      {allergies.length > 0 && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 flex items-start gap-3">
+          <ShieldAlert className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+          <div className="text-sm">
+            <p className="font-semibold text-destructive">
+              Known allergies ({allergies.length})
+            </p>
+            <p className="text-muted-foreground">
+              {allergies
+                .map((a) => `${a.allergen} (${a.severity})`)
+                .join(" · ")}
+            </p>
+          </div>
+        </div>
+      )}
+
       <Tabs defaultValue="symptoms">
         <TabsList>
           <TabsTrigger value="symptoms"><Stethoscope className="w-3 h-3 mr-1" />Symptoms ({symptoms.length})</TabsTrigger>
@@ -164,6 +185,7 @@ export default function PatientDetailPage() {
           <TabsTrigger value="prescriptions"><Pill className="w-3 h-3 mr-1" />Prescriptions ({prescriptions.length})</TabsTrigger>
           <TabsTrigger value="notes"><FileText className="w-3 h-3 mr-1" />Notes ({notes.length})</TabsTrigger>
           <TabsTrigger value="labs"><FlaskConical className="w-3 h-3 mr-1" />Lab Results ({labResults.length})</TabsTrigger>
+          <TabsTrigger value="allergies"><AlertTriangle className="w-3 h-3 mr-1" />Allergies ({allergies.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="symptoms" className="space-y-4">
@@ -180,6 +202,9 @@ export default function PatientDetailPage() {
         </TabsContent>
         <TabsContent value="labs" className="space-y-4">
           <LabResultsTab patientId={patient.id} labResults={labResults} onChange={setLabResults} />
+        </TabsContent>
+        <TabsContent value="allergies" className="space-y-4">
+          <AllergyTab patientId={patient.id} allergies={allergies} onChange={setAllergies} />
         </TabsContent>
       </Tabs>
     </div>
@@ -329,6 +354,7 @@ function PrescriptionTab({ patientId, prescriptions, onChange }: { patientId: st
   const [dosage, setDosage] = useState("");
   const [freq, setFreq] = useState("");
   const [route, setRoute] = useState("oral");
+  const [warnings, setWarnings] = useState<AllergyWarning[]>([]);
 
   async function handleAdd() {
     try {
@@ -337,10 +363,26 @@ function PrescriptionTab({ patientId, prescriptions, onChange }: { patientId: st
         start_date: new Date().toISOString().split("T")[0],
       });
       onChange([created, ...prescriptions]);
-      setOpen(false); setMed(""); setDosage(""); setFreq(""); setRoute("oral");
-      toast.success("Prescription added");
+      if (created.allergy_warnings && created.allergy_warnings.length > 0) {
+        setWarnings(created.allergy_warnings);
+        toast.warning(
+          `Allergy alert: ${created.allergy_warnings.map((w) => w.allergen).join(", ")}`,
+          { description: "Prescription saved — confirm clinically appropriate." },
+        );
+      } else {
+        setOpen(false); setMed(""); setDosage(""); setFreq(""); setRoute("oral");
+        toast.success("Prescription added");
+      }
     } catch (err) {
       toast.error("Failed to add prescription", { description: err instanceof Error ? err.message : "" });
+    }
+  }
+
+  function closeDialog(next: boolean) {
+    setOpen(next);
+    if (!next) {
+      setWarnings([]);
+      setMed(""); setDosage(""); setFreq(""); setRoute("oral");
     }
   }
 
@@ -354,10 +396,28 @@ function PrescriptionTab({ patientId, prescriptions, onChange }: { patientId: st
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-sm">Prescriptions</CardTitle>
         {canWrite && (
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog open={open} onOpenChange={closeDialog}>
             <DialogTrigger><Button size="sm"><Plus className="w-3 h-3 mr-1" />Add</Button></DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>Add Prescription</DialogTitle></DialogHeader>
+              {warnings.length > 0 && (
+                <div className="rounded-md border border-destructive bg-destructive/10 p-3 flex items-start gap-2">
+                  <ShieldAlert className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="font-semibold text-destructive">
+                      Allergy alert — prescription saved, but verify before dispensing.
+                    </p>
+                    <ul className="mt-1 list-disc list-inside text-muted-foreground">
+                      {warnings.map((w) => (
+                        <li key={w.allergy_id}>
+                          <span className="font-medium">{w.allergen}</span> · {w.severity}
+                          {w.reaction ? ` · ${w.reaction}` : ""}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
               <div className="space-y-3 py-2">
                 <div className="space-y-1"><Label>Medication</Label><Input value={med} onChange={(e) => setMed(e.target.value)} placeholder="Lisinopril" /></div>
                 <div className="space-y-1"><Label>Dosage</Label><Input value={dosage} onChange={(e) => setDosage(e.target.value)} placeholder="10 mg" /></div>
@@ -376,7 +436,13 @@ function PrescriptionTab({ patientId, prescriptions, onChange }: { patientId: st
                   </Select>
                 </div>
               </div>
-              <DialogFooter><Button onClick={handleAdd} disabled={!med.trim() || !dosage.trim() || !freq.trim()}>Add</Button></DialogFooter>
+              <DialogFooter>
+                {warnings.length > 0 ? (
+                  <Button onClick={() => closeDialog(false)}>Acknowledge</Button>
+                ) : (
+                  <Button onClick={handleAdd} disabled={!med.trim() || !dosage.trim() || !freq.trim()}>Add</Button>
+                )}
+              </DialogFooter>
             </DialogContent>
           </Dialog>
         )}
@@ -619,6 +685,137 @@ function LabResultsTab({
               </div>
             );
           })
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Allergy Tab ─────────────────────────────────────────
+
+const ALLERGY_SEVERITIES = ["mild", "moderate", "severe", "anaphylaxis"];
+
+function severityVariant(severity: string): "default" | "secondary" | "destructive" | "outline" {
+  if (severity === "anaphylaxis" || severity === "severe") return "destructive";
+  if (severity === "moderate") return "default";
+  return "secondary";
+}
+
+function AllergyTab({
+  patientId,
+  allergies,
+  onChange,
+}: {
+  patientId: string;
+  allergies: AllergyResponse[];
+  onChange: (a: AllergyResponse[]) => void;
+}) {
+  const { user } = useAuth();
+  const canWrite = can.writeAllergy(user);
+  const [open, setOpen] = useState(false);
+  const [allergen, setAllergen] = useState("");
+  const [severity, setSeverity] = useState("moderate");
+  const [reaction, setReaction] = useState("");
+
+  async function handleAdd() {
+    try {
+      const created = await createAllergy({
+        patient_id: patientId,
+        allergen: allergen.trim(),
+        severity,
+        reaction: reaction.trim() || null,
+      });
+      onChange([created, ...allergies]);
+      setOpen(false);
+      setAllergen("");
+      setSeverity("moderate");
+      setReaction("");
+      toast.success("Allergy recorded");
+    } catch (err) {
+      toast.error("Failed to record allergy", {
+        description: err instanceof Error ? err.message : "",
+      });
+    }
+  }
+
+  async function handleDelete(aid: string) {
+    try {
+      await deleteAllergy(aid);
+      onChange(allergies.filter((a) => a.id !== aid));
+      toast.success("Allergy removed");
+    } catch (err) {
+      toast.error("Failed to remove allergy");
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="text-sm">Allergies</CardTitle>
+        {canWrite && (
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger><Button size="sm"><Plus className="w-3 h-3 mr-1" />Add</Button></DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Record Allergy</DialogTitle></DialogHeader>
+              <div className="space-y-3 py-2">
+                <div className="space-y-1">
+                  <Label>Allergen</Label>
+                  <Input
+                    value={allergen}
+                    onChange={(e) => setAllergen(e.target.value)}
+                    placeholder="e.g. Penicillin"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Severity</Label>
+                  <Select value={severity} onValueChange={(v) => setSeverity(v ?? "moderate")}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {ALLERGY_SEVERITIES.map((s) => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>Reaction</Label>
+                  <Textarea
+                    value={reaction}
+                    onChange={(e) => setReaction(e.target.value)}
+                    rows={2}
+                    placeholder="hives, swelling, anaphylaxis…"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button onClick={handleAdd} disabled={!allergen.trim()}>Add</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {allergies.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No allergies recorded.</p>
+        ) : (
+          allergies.map((a) => (
+            <div key={a.id} className="flex items-center justify-between border rounded-lg p-3">
+              <div className="flex-1">
+                <p className="text-sm font-medium flex items-center gap-2">
+                  {a.allergen}
+                  <Badge variant={severityVariant(a.severity)}>{a.severity}</Badge>
+                </p>
+                {a.reaction && (
+                  <p className="text-xs text-muted-foreground mt-1">{a.reaction}</p>
+                )}
+              </div>
+              {canWrite && (
+                <Button variant="ghost" size="icon" onClick={() => handleDelete(a.id)}>
+                  <Trash2 className="w-4 h-4 text-destructive" />
+                </Button>
+              )}
+            </div>
+          ))
         )}
       </CardContent>
     </Card>

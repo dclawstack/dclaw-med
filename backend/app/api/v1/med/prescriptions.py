@@ -8,9 +8,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import PRESCRIPTION_WRITE, READ_ANY
 from app.core.database import get_db
+from app.repositories.allergy_repo import AllergyRepository
 from app.repositories.prescription_repo import PrescriptionRepository
+from app.schemas.allergy import AllergyWarning
 from app.schemas.prescription import (
     PrescriptionCreate,
+    PrescriptionCreateResponse,
     PrescriptionResponse,
     PrescriptionUpdate,
 )
@@ -35,18 +38,31 @@ async def list_prescriptions(
 
 @router.post(
     "",
-    response_model=PrescriptionResponse,
+    response_model=PrescriptionCreateResponse,
     status_code=status.HTTP_201_CREATED,
     dependencies=[PRESCRIPTION_WRITE],
 )
 async def create_prescription(
     data: PrescriptionCreate,
     db: AsyncSession = Depends(get_db),
-) -> PrescriptionResponse:
-    """Create a new prescription."""
-    repo = PrescriptionRepository(db)
-    prescription = await repo.create(data)
-    return PrescriptionResponse.model_validate(prescription)
+) -> PrescriptionCreateResponse:
+    """Create a new prescription. Returns matching allergy warnings if any."""
+    matches = await AllergyRepository(db).match_for_medication(
+        patient_id=data.patient_id, medication_name=data.medication_name
+    )
+    warnings = [
+        AllergyWarning(
+            allergy_id=a.id,
+            allergen=a.allergen,
+            severity=a.severity,
+            reaction=a.reaction,
+        )
+        for a in matches
+    ]
+    prescription = await PrescriptionRepository(db).create(data)
+    response = PrescriptionCreateResponse.model_validate(prescription)
+    response.allergy_warnings = warnings
+    return response
 
 
 @router.get(

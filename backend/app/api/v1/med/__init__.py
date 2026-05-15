@@ -3,6 +3,7 @@
 from fastapi import APIRouter
 
 from app.api.v1.med import (
+    allergies,
     appointments,
     diagnoses,
     drugs,
@@ -29,4 +30,5 @@ router.include_router(
 router.include_router(
     appointments.router, prefix="/appointments", tags=["Appointments"]
 )
+router.include_router(allergies.router, prefix="/allergies", tags=["Allergies"])
 router.include_router(patients.router, prefix="/patients", tags=["Patients"])
