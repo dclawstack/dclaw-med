@@ -29,6 +29,19 @@ _METHOD_TO_ACTION = {
 }
 
 _MED_PREFIX = "/api/v1/med/"
+_PORTAL_PREFIX = "/api/v1/patient-portal/"
+
+# Map the trailing path segment of a portal route to the entity_type stored
+# on the audit row, so a patient reading their own labs becomes a recognizable
+# (action=read, entity_type=lab_results) row.
+_PORTAL_ENTITY = {
+    "me": "patient",
+    "prescriptions": "prescriptions",
+    "lab-results": "lab_results",
+    "notes": "notes",
+    "appointments": "appointments",
+    "allergies": "allergies",
+}
 
 
 def _user_id_from_token(request: Request) -> Optional[UUID]:
@@ -60,15 +73,43 @@ def _parse_med_path(path: str) -> tuple[Optional[str], Optional[UUID]]:
     return entity_type, None
 
 
+def _parse_portal_path(path: str) -> tuple[Optional[str], Optional[UUID]]:
+    """Return (entity_type, entity_id) for /api/v1/patient-portal/me[/<resource>].
+
+    Portal routes are always `/me` or `/me/<resource>`. entity_id is always
+    None — the resource is implicitly the current user's patient_id, which
+    the audit log carries via user_id.
+    """
+    rest = path[len(_PORTAL_PREFIX):].strip("/")
+    if not rest:
+        return None, None
+    parts = rest.split("/")
+    if parts[0] != "me":
+        return None, None
+    # /me alone reads the patient record; /me/<resource> reads a collection.
+    segment = parts[1] if len(parts) > 1 else "me"
+    return _PORTAL_ENTITY.get(segment), None
+
+
 class AuditMiddleware(BaseHTTPMiddleware):
-    """Append-only access log for /api/v1/med/*. Skips non-medical and failed requests."""
+    """Append-only access log for /api/v1/med/* and /api/v1/patient-portal/*.
+
+    HIPAA expects every PHI access to leave a trail — that includes a patient
+    reading their own record via the portal, not just clinician access via
+    /med. Skips non-medical paths and failed (4xx/5xx) requests.
+    """
 
     async def dispatch(self, request: Request, call_next):
         response: Response = await call_next(request)
 
         path = request.url.path
-        if not path.startswith(_MED_PREFIX):
+        if path.startswith(_MED_PREFIX):
+            entity_type, entity_id = _parse_med_path(path)
+        elif path.startswith(_PORTAL_PREFIX):
+            entity_type, entity_id = _parse_portal_path(path)
+        else:
             return response
+
         if response.status_code >= 400:
             return response
 
@@ -76,7 +117,6 @@ class AuditMiddleware(BaseHTTPMiddleware):
         if user_id is None:
             return response
 
-        entity_type, entity_id = _parse_med_path(path)
         action = _METHOD_TO_ACTION.get(request.method)
         if entity_type is None or action is None:
             return response

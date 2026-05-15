@@ -116,6 +116,33 @@ async def test_audit_endpoint_requires_auth(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_portal_access_is_audited(
+    client: AsyncClient,
+    patient_headers: dict[str, str],
+    admin_headers: dict[str, str],
+) -> None:
+    """Patient reading their own portal data must leave an audit row.
+
+    HIPAA expects every PHI access to be logged — that includes self-access
+    via /api/v1/patient-portal/*, not just clinician access via /med.
+    """
+    # Patient reads own record + prescriptions via the portal.
+    me = await client.get("/api/v1/patient-portal/me", headers=patient_headers)
+    assert me.status_code == 200
+    rx = await client.get(
+        "/api/v1/patient-portal/me/prescriptions", headers=patient_headers
+    )
+    assert rx.status_code == 200
+
+    audit = await client.get("/api/v1/audit", headers=admin_headers)
+    assert audit.status_code == 200
+    rows = audit.json()
+    entities = {(r["action"], r["entity_type"]) for r in rows}
+    assert ("read", "patient") in entities
+    assert ("read", "prescriptions") in entities
+
+
+@pytest.mark.asyncio
 async def test_audit_filter_by_user(
     client: AsyncClient,
     doctor_headers: dict[str, str],

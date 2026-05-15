@@ -3,7 +3,7 @@
 import pytest
 from httpx import AsyncClient
 
-TRIAGE = "/api/v1/med/symptoms/triage"
+TRIAGE = "/api/v1/triage"
 
 
 @pytest.mark.asyncio

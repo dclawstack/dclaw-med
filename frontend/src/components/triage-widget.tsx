@@ -31,7 +31,7 @@ interface TriageWidgetProps {
 }
 
 export function TriageWidget({
-  title = "AI Triage",
+  title = "Symptom triage",
   hint = "Describe the presenting symptoms in plain language.",
 }: TriageWidgetProps) {
   const [symptoms, setSymptoms] = useState("");

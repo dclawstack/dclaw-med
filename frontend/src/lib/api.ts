@@ -690,7 +690,7 @@ export interface TriageResponse {
 }
 
 export function triage(req: TriageRequest): Promise<TriageResponse> {
-  return request<TriageResponse>(`${MED}/symptoms/triage`, {
+  return request<TriageResponse>(`${API_BASE}/api/v1/triage`, {
     method: "POST",
     body: JSON.stringify(req),
   });
