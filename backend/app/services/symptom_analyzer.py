@@ -1,6 +1,21 @@
-"""Symptom analysis service with mock differential diagnosis."""
+"""Symptom analysis service.
 
+Primary path calls the LLM via :mod:`app.services.llm` and validates the
+structured response against :class:`SymptomAnalysisResponse`. If the LLM is
+unconfigured (no API key), mocked, returns malformed JSON, or fails Pydantic
+validation, the service falls back to the embedded keyword matcher below so
+the endpoint stays useful in dev / offline / outage scenarios.
+
+The keyword fallback is intentionally narrow (5 symptom families) and is not
+meant to be clinically reliable on its own — it exists so demos and tests
+still return *something* shaped right when the LLM isn't around.
+"""
+
+import logging
 from uuid import UUID
+
+import structlog
+from pydantic import ValidationError
 
 from app.schemas.symptom import (
     DifferentialDiagnosis,
@@ -9,6 +24,9 @@ from app.schemas.symptom import (
     TriageRequest,
     TriageResponse,
 )
+from app.services.llm import LLMUnavailable, json_completion
+
+log = structlog.get_logger(__name__)
 
 # Mock knowledge base for symptom pattern matching
 SYMPTOM_PATTERNS = {
@@ -272,20 +290,122 @@ def _match_pattern(symptoms: str) -> dict:
     return DEFAULT_RESPONSE
 
 
-async def analyze_symptoms(
-    request: SymptomAnalysisRequest,
-) -> SymptomAnalysisResponse:
-    """Analyze symptoms and return differential diagnoses."""
+def _primary_symptoms(symptoms: str) -> list[str]:
+    return [s.strip() for s in symptoms.split(",") if s.strip()]
+
+
+def _keyword_analyze(request: SymptomAnalysisRequest) -> SymptomAnalysisResponse:
+    """Static keyword-matcher fallback. See module docstring."""
     matched = _match_pattern(request.symptoms)
     diagnoses = matched["diagnoses"][: request.max_results]
-
     return SymptomAnalysisResponse(
         patient_id=request.patient_id,
-        primary_symptoms=[s.strip() for s in request.symptoms.split(",") if s.strip()],
+        primary_symptoms=_primary_symptoms(request.symptoms),
         differential_diagnoses=diagnoses,
         recommended_tests=matched["tests"],
         urgency_level=matched["urgency"],
     )
+
+
+_ANALYZER_SYSTEM_PROMPT = """\
+You are a clinical decision support model assisting US physicians.
+
+NON-NEGOTIABLE RULES:
+1. Return JSON only. No prose, no markdown fences.
+2. Always provide AT LEAST 3 differential diagnoses, ordered most-likely first.
+   Never return a single diagnosis — primary-care reasoning is differential.
+3. Each diagnosis must include a real ICD-10-CM code. If unsure, use the
+   closest valid parent code; never invent a code.
+4. confidence is a float in [0.0, 1.0]:
+   ~0.3 = plausible, ~0.6 = likely, ~0.85 = highly likely.
+5. urgency_level is exactly one of: "low", "medium", "high", "critical".
+   - critical: life-threatening, EMS now (STEMI, anaphylaxis, severe SOB).
+   - high: needs ED today.
+   - medium: primary care within the week.
+   - low: self-care, watch.
+6. reasoning is 1-2 sentences that cite the specific symptom evidence
+   from the user's input.
+7. evidence_refs is a list of {source, excerpt}. ``source`` should be
+   "patient-symptoms" when quoting the user's input, or a literature
+   handle like "uptodate"/"pubmed". If a claim cannot be grounded,
+   omit the diagnosis rather than fabricate a citation.
+8. recommended_tests is a list of short test names actionable in a
+   typical US outpatient or ED setting (e.g. "ECG", "CBC with diff").
+"""
+
+_ANALYZER_SCHEMA_HINT = """\
+{
+  "differential_diagnoses": [
+    {
+      "condition": "string",
+      "icd10_code": "string",
+      "confidence": 0.0,
+      "reasoning": "string",
+      "evidence_refs": [{"source": "string", "excerpt": "string"}]
+    }
+  ],
+  "recommended_tests": ["string"],
+  "urgency_level": "low|medium|high|critical"
+}
+"""
+
+
+async def _llm_analyze(
+    request: SymptomAnalysisRequest,
+) -> SymptomAnalysisResponse:
+    """Call the LLM, validate the structured response, return it.
+
+    Raises :class:`LLMUnavailable` if the LLM is mocked/unconfigured or if
+    the response fails schema validation — the caller turns that into a
+    fallback to the keyword matcher.
+    """
+    user_prompt = (
+        f"Patient ID: {request.patient_id}\n"
+        f"Symptoms (free text): {request.symptoms}\n"
+        f"Return at most {request.max_results} differentials."
+    )
+    raw = await json_completion(
+        system=_ANALYZER_SYSTEM_PROMPT,
+        user=user_prompt,
+        schema_hint=_ANALYZER_SCHEMA_HINT,
+    )
+    try:
+        diagnoses = [
+            DifferentialDiagnosis.model_validate(d)
+            for d in raw.get("differential_diagnoses", [])
+        ][: request.max_results]
+        urgency = raw.get("urgency_level", "low")
+        tests = raw.get("recommended_tests", []) or []
+    except ValidationError as exc:
+        raise LLMUnavailable(f"LLM output failed schema validation: {exc}") from exc
+
+    if len(diagnoses) < 1:
+        # Guardrail: the prompt requires >=3; if the model returns 0 we
+        # treat the response as unusable and let the caller fall back.
+        raise LLMUnavailable("LLM returned no differentials")
+
+    return SymptomAnalysisResponse(
+        patient_id=request.patient_id,
+        primary_symptoms=_primary_symptoms(request.symptoms),
+        differential_diagnoses=diagnoses,
+        recommended_tests=list(tests),
+        urgency_level=urgency,
+    )
+
+
+async def analyze_symptoms(
+    request: SymptomAnalysisRequest,
+) -> SymptomAnalysisResponse:
+    """Analyze symptoms and return differential diagnoses.
+
+    Tries the LLM first; falls back to the keyword matcher if the LLM is
+    unavailable or its output is unusable.
+    """
+    try:
+        return await _llm_analyze(request)
+    except LLMUnavailable as exc:
+        log.info("symptom_analyzer.fallback", reason=str(exc))
+        return _keyword_analyze(request)
 
 
 async def triage(request: TriageRequest) -> TriageResponse:
