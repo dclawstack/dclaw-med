@@ -14,6 +14,7 @@ from app.api.v1.med import router as med_router
 from app.core.audit_middleware import AuditMiddleware
 from app.core.config import settings
 from app.core.logging import configure_logging
+from app.core.request_id import RequestIDMiddleware
 
 configure_logging()
 
@@ -52,6 +53,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.add_middleware(AuditMiddleware)
+app.add_middleware(RequestIDMiddleware)
 
 app.include_router(health.router, tags=["Health"])
 app.include_router(auth_router.router, prefix="/api/v1/auth", tags=["Auth"])
