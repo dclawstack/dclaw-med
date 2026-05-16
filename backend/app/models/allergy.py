@@ -4,9 +4,9 @@ import uuid
 from typing import TYPE_CHECKING
 
 from sqlalchemy import CheckConstraint, ForeignKey, String, Text, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.dialect import UUIDType
 from app.models.base import Base, TimestampMixin, UUIDMixin
 
 if TYPE_CHECKING:
@@ -26,7 +26,7 @@ class Allergy(Base, UUIDMixin, TimestampMixin):
     )
 
     patient_id: Mapped[uuid.UUID] = mapped_column(
-        PGUUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("patients.id", ondelete="CASCADE"),
         nullable=False,
         index=True,

@@ -7,6 +7,7 @@ from sqlalchemy import Select, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.dialect import IS_SQLITE
 from app.models.diagnosis import Diagnosis
 from app.models.patient import Patient
 from app.schemas.patient import PatientCreate, PatientUpdate
@@ -21,15 +22,23 @@ def _apply_filters(
 ) -> Select:
     """Apply search filters to a Patient select statement."""
     if q:
-        # Postgres full-text on name OR case-insensitive substring on MRN — covers both
-        # "type a name" and "scan an MRN" usage.
-        tsquery = func.websearch_to_tsquery("english", q)
-        stmt = stmt.where(
-            or_(
-                Patient.name_tsv.op("@@")(tsquery),
-                Patient.medical_record_number.ilike(f"%{q}%"),
+        # Postgres: tsvector full-text on name. SQLite (dev): ILIKE fallback.
+        # Either way MRN is a case-insensitive substring match.
+        if IS_SQLITE:
+            stmt = stmt.where(
+                or_(
+                    Patient.name.ilike(f"%{q}%"),
+                    Patient.medical_record_number.ilike(f"%{q}%"),
+                )
             )
-        )
+        else:
+            tsquery = func.websearch_to_tsquery("english", q)
+            stmt = stmt.where(
+                or_(
+                    Patient.name_tsv.op("@@")(tsquery),
+                    Patient.medical_record_number.ilike(f"%{q}%"),
+                )
+            )
     if dob_from is not None:
         stmt = stmt.where(Patient.date_of_birth >= dob_from)
     if dob_to is not None:

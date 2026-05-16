@@ -3,9 +3,9 @@
 import uuid
 
 from sqlalchemy import Boolean, ForeignKey, String
-from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.core.dialect import UUIDType
 from app.models.base import Base, TimestampMixin, UUIDMixin
 
 ROLES = ("doctor", "nurse", "admin", "receptionist", "patient")
@@ -27,7 +27,7 @@ class User(Base, UUIDMixin, TimestampMixin):
     # Set when role == "patient" to bind the account to a patient record.
     # SET NULL on patient delete so the account survives — admins can re-link.
     patient_id: Mapped[uuid.UUID | None] = mapped_column(
-        PGUUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("patients.id", ondelete="SET NULL"),
         nullable=True,
         index=True,

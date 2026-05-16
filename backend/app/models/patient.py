@@ -5,9 +5,10 @@ from datetime import date
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import Computed, Date, Index, JSON, String
-from sqlalchemy.dialects.postgresql import TSVECTOR, UUID as PGUUID
+from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.dialect import IS_SQLITE
 from app.models.base import Base, TimestampMixin, UUIDMixin
 
 if TYPE_CHECKING:
@@ -32,16 +33,19 @@ class Patient(Base, UUIDMixin, TimestampMixin):
         String(100), unique=True, nullable=False, index=True
     )
     contact_info: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
-    # Generated tsvector for full-text search on name. Stored so the GIN index can use it.
-    name_tsv: Mapped[str | None] = mapped_column(
-        TSVECTOR,
-        Computed("to_tsvector('english', coalesce(name, ''))", persisted=True),
-        nullable=True,
-    )
 
-    __table_args__ = (
-        Index("ix_patients_name_tsv", "name_tsv", postgresql_using="gin"),
-    )
+    # Postgres-only: stored tsvector + GIN index for full-text name search.
+    # On SQLite (dev mode) we skip these and the repository falls back to ILIKE.
+    if not IS_SQLITE:
+        name_tsv: Mapped[str | None] = mapped_column(
+            TSVECTOR,
+            Computed("to_tsvector('english', coalesce(name, ''))", persisted=True),
+            nullable=True,
+        )
+
+        __table_args__ = (
+            Index("ix_patients_name_tsv", "name_tsv", postgresql_using="gin"),
+        )
 
     symptoms: Mapped[list["Symptom"]] = relationship(
         "Symptom", back_populates="patient", lazy="selectin", cascade="all, delete-orphan"
