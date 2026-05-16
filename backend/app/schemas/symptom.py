@@ -43,6 +43,18 @@ class SymptomResponse(SymptomBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class EvidenceRef(BaseModel):
+    """A grounded citation for a clinical claim.
+
+    ``source`` is intentionally a free-form string for now (e.g.
+    ``"patient-symptoms"``, ``"uptodate"``, ``"pubmed"``); a stricter
+    enum will follow once RAG lands (plan v1.3 ticket 2.2).
+    """
+
+    source: str
+    excerpt: str
+
+
 class DifferentialDiagnosis(BaseModel):
     """A single differential diagnosis result."""
 
@@ -50,6 +62,7 @@ class DifferentialDiagnosis(BaseModel):
     icd10_code: str
     confidence: float = Field(..., ge=0.0, le=1.0)
     reasoning: str
+    evidence_refs: list[EvidenceRef] = Field(default_factory=list)
 
 
 class SymptomAnalysisRequest(BaseModel):

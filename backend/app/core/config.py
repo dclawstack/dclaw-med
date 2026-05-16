@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     jwt_expire_minutes: int = 60
     embedding_model: str = "BAAI/bge-large-en-v1.5"
     llm_provider: str = "openrouter"
-    llm_model: str = "kimi/k2.5"
+    llm_model: str = "moonshotai/kimi-k2"
     openrouter_api_key: str = ""
 
     @property
