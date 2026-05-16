@@ -20,7 +20,17 @@ configure_logging()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan handler. Schema is managed by Alembic."""
+    """Application lifespan handler.
+
+    Prod uses Alembic for schema. SQLite dev mode skips Alembic and creates
+    tables on first boot so ``make dev`` works without any extra steps.
+    """
+    from app.core.dialect import IS_SQLITE
+
+    if IS_SQLITE:
+        from app.core.database import init_db
+
+        await init_db()
     yield
 
 

@@ -5,9 +5,9 @@ from datetime import datetime
 from typing import Any
 
 from sqlalchemy import DateTime, ForeignKey, String, func
-from sqlalchemy.dialects.postgresql import JSONB, UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.core.dialect import JSONType, UUIDType
 from app.models.base import Base, UUIDMixin
 
 
@@ -17,7 +17,7 @@ class AuditLog(Base, UUIDMixin):
     __tablename__ = "audit_logs"
 
     user_id: Mapped[uuid.UUID] = mapped_column(
-        PGUUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("users.id", ondelete="RESTRICT"),
         nullable=False,
         index=True,
@@ -25,10 +25,10 @@ class AuditLog(Base, UUIDMixin):
     action: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
     entity_type: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     entity_id: Mapped[uuid.UUID | None] = mapped_column(
-        PGUUID(as_uuid=True), nullable=True, index=True
+        UUIDType(), nullable=True, index=True
     )
-    old_value: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
-    new_value: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    old_value: Mapped[dict[str, Any] | None] = mapped_column(JSONType(), nullable=True)
+    new_value: Mapped[dict[str, Any] | None] = mapped_column(JSONType(), nullable=True)
     timestamp: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

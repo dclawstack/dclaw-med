@@ -4,9 +4,9 @@ import uuid
 from typing import Any
 
 from sqlalchemy import ForeignKey, String, Text
-from sqlalchemy.dialects.postgresql import JSONB, UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.dialect import JSONType, UUIDType
 from app.models.base import Base, TimestampMixin, UUIDMixin
 
 
@@ -16,7 +16,7 @@ class Diagnosis(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "diagnoses"
 
     patient_id: Mapped[uuid.UUID] = mapped_column(
-        PGUUID(as_uuid=True),
+        UUIDType(),
         ForeignKey("patients.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -25,7 +25,7 @@ class Diagnosis(Base, UUIDMixin, TimestampMixin):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     confidence: Mapped[float] = mapped_column(default=0.0)
-    differential: Mapped[list[dict[str, Any]] | None] = mapped_column(JSONB, nullable=True)
+    differential: Mapped[list[dict[str, Any]] | None] = mapped_column(JSONType(), nullable=True)
     status: Mapped[str] = mapped_column(
         String(50), default="provisional"
     )  # provisional / confirmed / ruled_out
