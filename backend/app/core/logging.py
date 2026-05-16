@@ -8,6 +8,7 @@ def configure_logging() -> None:
     """Configure structlog and standard logging."""
     structlog.configure(
         processors=[
+            structlog.contextvars.merge_contextvars,
             structlog.stdlib.filter_by_level,
             structlog.stdlib.add_logger_name,
             structlog.stdlib.add_log_level,
