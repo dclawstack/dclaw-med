@@ -13,6 +13,8 @@ import {
   PatientResponse, PrescriptionResponse, ClinicalNoteResponse, DiagnosisResponse,
 } from "@/lib/api";
 import { TriageWidget } from "@/components/triage-widget";
+import { useAuth } from "@/components/auth-provider";
+import { can } from "@/lib/permissions";
 import {
   Activity,
   ArrowRight,
@@ -20,11 +22,15 @@ import {
   Database,
   FileText,
   Pill,
+  ShieldCheck,
   Stethoscope,
+  UserCog,
   Users,
 } from "lucide-react";
 
 export default function DashboardPage() {
+  const { user } = useAuth();
+  const isAdmin = can.viewAudit(user);
   const [patients, setPatients] = useState<PatientResponse[]>([]);
   const [prescriptions, setPrescriptions] = useState<PrescriptionResponse[]>([]);
   const [notes, setNotes] = useState<ClinicalNoteResponse[]>([]);
@@ -128,6 +134,26 @@ export default function DashboardPage() {
           </Link>
         </div>
       </div>
+
+      {isAdmin && (
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold">Admin</h2>
+          <div className="flex flex-wrap gap-3">
+            <Link href="/admin/users">
+              <Button variant="outline">
+                <UserCog className="w-4 h-4 mr-2" />
+                Manage users
+              </Button>
+            </Link>
+            <Link href="/audit">
+              <Button variant="outline">
+                <ShieldCheck className="w-4 h-4 mr-2" />
+                Audit trail
+              </Button>
+            </Link>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2">
         <TriageWidget />

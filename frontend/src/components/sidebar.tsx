@@ -104,7 +104,7 @@ export function Sidebar() {
               )}
             >
               <UserCog className="w-4 h-4" />
-              Patient Accounts
+              Users
             </Link>
           </>
         )}
