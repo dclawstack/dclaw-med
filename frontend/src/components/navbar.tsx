@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { APP_COLOR } from "@/lib/tokens";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
@@ -41,12 +40,6 @@ export function Navbar() {
         </Badge>
       </div>
       <div className="flex items-center gap-3">
-        <span
-          className="text-xs font-medium px-2 py-0.5 rounded-full text-white"
-          style={{ backgroundColor: APP_COLOR }}
-        >
-          P0
-        </span>
         <Link
           href="https://github.com/dclawstack/dclaw-med"
           target="_blank"

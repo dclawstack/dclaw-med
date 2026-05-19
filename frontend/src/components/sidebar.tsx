@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { APP_NAME, APP_COLOR } from "@/lib/tokens";
+import { APP_NAME } from "@/lib/tokens";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth-provider";
 import { can, isPatientUser } from "@/lib/permissions";
@@ -48,10 +48,7 @@ export function Sidebar() {
     <aside className="w-64 border-r bg-card flex flex-col">
       <div className="p-4 border-b">
         <Link href="/" className="flex items-center gap-2 font-bold text-lg">
-          <span
-            className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-white"
-            style={{ backgroundColor: APP_COLOR }}
-          >
+          <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-primary text-primary-foreground">
             <Activity className="w-4 h-4" />
           </span>
           {APP_NAME}
