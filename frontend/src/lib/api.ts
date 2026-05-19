@@ -733,3 +733,18 @@ export function linkUserToPatient(
     body: JSON.stringify({ patient_id: patientId }),
   });
 }
+
+export interface UserCreateInput {
+  email: string;
+  password: string;
+  full_name: string;
+  role: "doctor" | "nurse" | "admin" | "receptionist" | "patient";
+  patient_id?: string | null;
+}
+
+export function registerUser(data: UserCreateInput): Promise<CurrentUser> {
+  return request<CurrentUser>(`${AUTH}/register`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
