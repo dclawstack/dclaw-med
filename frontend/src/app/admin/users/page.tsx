@@ -5,14 +5,17 @@ import {
   CurrentUser,
   PatientResponse,
   ApiError,
+  UserCreateInput,
   listUsers,
   listPatients,
   linkUserToPatient,
+  registerUser,
 } from "@/lib/api";
 import { useAuth } from "@/components/auth-provider";
 import { can } from "@/lib/permissions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -40,7 +43,26 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Lock, Users, Link2, Link2Off } from "lucide-react";
+import { Lock, Users, Link2, Link2Off, UserPlus } from "lucide-react";
+
+type Role = UserCreateInput["role"];
+const ROLES: Role[] = ["doctor", "nurse", "admin", "receptionist", "patient"];
+
+interface NewUserDraft {
+  email: string;
+  password: string;
+  full_name: string;
+  role: Role;
+  patient_id: string;
+}
+
+const EMPTY_DRAFT: NewUserDraft = {
+  email: "",
+  password: "",
+  full_name: "",
+  role: "doctor",
+  patient_id: "",
+};
 
 export default function AdminUsersPage() {
   const { user } = useAuth();
@@ -50,6 +72,9 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [linkOpenFor, setLinkOpenFor] = useState<CurrentUser | null>(null);
   const [selectedPatient, setSelectedPatient] = useState<string>("");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [draft, setDraft] = useState<NewUserDraft>(EMPTY_DRAFT);
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -103,6 +128,40 @@ export default function AdminUsersPage() {
     }
   }
 
+  function draftIsValid(d: NewUserDraft): boolean {
+    if (!d.email.trim() || !d.password || !d.full_name.trim()) return false;
+    if (d.role === "patient" && !d.patient_id) return false;
+    return true;
+  }
+
+  async function handleCreate() {
+    if (!draftIsValid(draft)) return;
+    setCreating(true);
+    try {
+      const payload: UserCreateInput = {
+        email: draft.email.trim(),
+        password: draft.password,
+        full_name: draft.full_name.trim(),
+        role: draft.role,
+        // Backend requires patient_id only for role=patient; omit otherwise.
+        patient_id: draft.role === "patient" ? draft.patient_id : undefined,
+      };
+      const created = await registerUser(payload);
+      toast.success("User created", {
+        description: `${created.full_name} · ${created.role}`,
+      });
+      setCreateOpen(false);
+      setDraft(EMPTY_DRAFT);
+      // Reload so any new patient-role account appears in the linked table.
+      reload();
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : String(err);
+      toast.error("Could not create user", { description: msg });
+    } finally {
+      setCreating(false);
+    }
+  }
+
   if (!isAdmin) {
     return (
       <div className="max-w-3xl mx-auto">
@@ -124,15 +183,148 @@ export default function AdminUsersPage() {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <Users className="w-6 h-6 text-primary" />
-          Patient accounts
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Link each patient-role login to its corresponding patient record so
-          the portal can show their data.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <Users className="w-6 h-6 text-primary" />
+            User accounts
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Create clinician or patient logins. Patient-role accounts can also
+            be linked to a chart from the table below.
+          </p>
+        </div>
+        <Dialog
+          open={createOpen}
+          onOpenChange={(open) => {
+            setCreateOpen(open);
+            if (!open) setDraft(EMPTY_DRAFT);
+          }}
+        >
+          <DialogTrigger>
+            <Button size="sm">
+              <UserPlus className="w-4 h-4 mr-2" />
+              Add user
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create a new user</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="new-user-email">Email</Label>
+                <Input
+                  id="new-user-email"
+                  type="email"
+                  autoComplete="off"
+                  placeholder="clinician@clinic.example"
+                  value={draft.email}
+                  onChange={(e) =>
+                    setDraft({ ...draft, email: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="new-user-name">Full name</Label>
+                <Input
+                  id="new-user-name"
+                  autoComplete="off"
+                  placeholder="Dr. Jane Stone"
+                  value={draft.full_name}
+                  onChange={(e) =>
+                    setDraft({ ...draft, full_name: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="new-user-password">Temporary password</Label>
+                <Input
+                  id="new-user-password"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="At least 8 characters"
+                  value={draft.password}
+                  onChange={(e) =>
+                    setDraft({ ...draft, password: e.target.value })
+                  }
+                />
+                <p className="text-xs text-muted-foreground">
+                  Share this with the user securely. Self-serve password reset
+                  is on the v1.3 roadmap.
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Role</Label>
+                <Select
+                  value={draft.role}
+                  onValueChange={(v) =>
+                    setDraft({
+                      ...draft,
+                      role: v as Role,
+                      patient_id: v === "patient" ? draft.patient_id : "",
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ROLES.map((r) => (
+                      <SelectItem key={r} value={r}>
+                        {r}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {draft.role === "patient" && (
+                <div className="space-y-1.5">
+                  <Label>Linked patient chart</Label>
+                  <Select
+                    value={draft.patient_id}
+                    onValueChange={(v) =>
+                      setDraft({ ...draft, patient_id: v ?? "" })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a patient…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {patients.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.name} · {p.medical_record_number}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Patient logins are scoped to their own chart; this field is
+                    required and validated by the backend.
+                  </p>
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setCreateOpen(false);
+                  setDraft(EMPTY_DRAFT);
+                }}
+                disabled={creating}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleCreate}
+                disabled={!draftIsValid(draft) || creating}
+              >
+                {creating ? "Creating…" : "Create user"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Card>
