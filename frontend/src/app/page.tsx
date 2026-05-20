@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { APP_NAME, APP_TAGLINE } from "@/lib/tokens";
+import { APP_NAME, APP_TAGLINE, GITHUB_URL } from "@/lib/tokens";
 import { useAuth } from "@/components/auth-provider";
 import {
   Activity,
@@ -11,6 +11,7 @@ import {
   ClipboardList,
   Database,
   FileText,
+  Github,
   HeartPulse,
   ShieldCheck,
   Stethoscope,
@@ -77,12 +78,23 @@ export default function LandingPage() {
               Sign in
             </Link>
           </nav>
-          <Link href={ctaHref}>
-            <Button size="sm">
-              {ctaLabel}
-              <ArrowRight className="w-4 h-4 ml-1" />
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <a
+              href={GITHUB_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="View source on GitHub"
+              className="inline-flex items-center justify-center h-9 w-9 rounded-md text-muted-foreground transition hover:bg-muted hover:text-foreground"
+            >
+              <Github className="w-4 h-4" />
+            </a>
+            <Link href={ctaHref}>
+              <Button size="sm">
+                {ctaLabel}
+                <ArrowRight className="w-4 h-4 ml-1" />
+              </Button>
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -116,10 +128,14 @@ export default function LandingPage() {
                       <ArrowRight className="w-4 h-4 ml-2" />
                     </Button>
                   </Link>
-                  <a href="#features">
+                  <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer">
                     <Button size="lg" variant="outline" className="rounded-full">
-                      See features
+                      <Github className="w-4 h-4 mr-2" />
+                      View on GitHub
                     </Button>
+                  </a>
+                  <a href="#features" className="text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+                    See features
                   </a>
                 </div>
                 <ul className="mt-9 grid grid-cols-1 gap-x-8 gap-y-2 text-sm text-muted-foreground sm:grid-cols-2">
@@ -267,6 +283,16 @@ export default function LandingPage() {
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </Link>
+              <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="rounded-full border-background/30 bg-transparent text-background hover:bg-background/10"
+                >
+                  <Github className="w-4 h-4 mr-2" />
+                  View source
+                </Button>
+              </a>
             </div>
           </div>
         </section>
@@ -289,6 +315,15 @@ export default function LandingPage() {
             </a>
             <a href="#stack" className="hover:text-foreground">
               Stack
+            </a>
+            <a
+              href={GITHUB_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 hover:text-foreground"
+            >
+              <Github className="w-3.5 h-3.5" />
+              GitHub
             </a>
           </div>
         </div>
