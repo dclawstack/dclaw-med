@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import health
 from app.api.v1 import audit as audit_router
 from app.api.v1 import auth as auth_router
+from app.api.v1 import demo as demo_router
 from app.api.v1 import patient_portal as patient_portal_router
 from app.api.v1 import triage as triage_router
 from app.api.v1.med import router as med_router
@@ -64,4 +65,5 @@ app.include_router(
     tags=["Patient Portal"],
 )
 app.include_router(triage_router.router, prefix="/api/v1/triage", tags=["Triage"])
+app.include_router(demo_router.router, prefix="/api/v1/demo", tags=["Demo"])
 app.include_router(med_router, prefix="/api/v1/med")
