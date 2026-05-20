@@ -16,7 +16,7 @@
   }
 
   :focus-visible {
-    outline: 2px solid #7660A8;
+    outline: 2px solid #DA5138;
     outline-offset: 3px;
     border-radius: 6px;
   }
@@ -36,7 +36,7 @@
     font-weight: 600;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: #7660A8;
+    color: #DA5138;
   }
 }
 

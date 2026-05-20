@@ -12,6 +12,16 @@ npm install
 npm run dev     # http://localhost:3005
 ```
 
+## Environment
+
+`NEXT_PUBLIC_APP_URL` — the public URL of the clinician dashboard that the
+"Launch app" / "Launch dashboard" CTAs point at. Falls back to
+`http://localhost:3004` (the local Docker / dev port) if unset.
+
+For Vercel: set `NEXT_PUBLIC_APP_URL` in the project's Environment Variables
+to the public app hostname (e.g. `https://app.dclaw-med.dev`) before deploying
+production.
+
 ## Deploy
 
 Configured for Vercel. The Vercel project root must be `marketing/`.

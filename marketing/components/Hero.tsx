@@ -1,4 +1,4 @@
-import { GITHUB_URL } from "@/lib/site";
+import { APP_URL, GITHUB_URL } from "@/lib/site";
 
 export function Hero() {
   return (
@@ -41,12 +41,10 @@ export function Hero() {
 
           <div className="mt-9 flex flex-wrap items-center gap-4">
             <a
-              href={GITHUB_URL}
-              target="_blank"
-              rel="noopener noreferrer"
+              href={APP_URL}
               className="inline-flex items-center gap-2 rounded-pill bg-brand-700 px-6 py-3 text-sm font-semibold text-white shadow-brand transition hover:bg-brand-800"
             >
-              View on GitHub
+              Launch dashboard
               <svg viewBox="0 0 20 20" aria-hidden className="h-4 w-4">
                 <path
                   fill="currentColor"
@@ -55,8 +53,16 @@ export function Hero() {
               </svg>
             </a>
             <a
-              href="#features"
+              href={GITHUB_URL}
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-pill border border-black/10 bg-white px-6 py-3 text-sm font-semibold text-ink shadow-card transition hover:border-brand-300 hover:text-brand-700"
+            >
+              View on GitHub
+            </a>
+            <a
+              href="#features"
+              className="text-sm font-semibold text-body underline-offset-4 transition hover:text-brand-700 hover:underline"
             >
               See features
             </a>
