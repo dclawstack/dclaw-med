@@ -21,15 +21,17 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-const PUBLIC_ROUTES = new Set(["/login"]);
+const PUBLIC_ROUTES = new Set(["/", "/login"]);
 const PORTAL_HOME = "/patient-portal";
+const DASHBOARD_HOME = "/dashboard";
 
 function landingFor(user: CurrentUser): string {
-  return user.role === "patient" ? PORTAL_HOME : "/";
+  return user.role === "patient" ? PORTAL_HOME : DASHBOARD_HOME;
 }
 
 function isPathAllowedForPatient(pathname: string): boolean {
   return (
+    pathname === "/" ||
     pathname === PORTAL_HOME ||
     pathname.startsWith(`${PORTAL_HOME}/`) ||
     pathname === "/settings" ||
