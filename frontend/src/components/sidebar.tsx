@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 
 const clinicianNav = [
-  { href: "/", label: "Dashboard", icon: Home },
+  { href: "/dashboard", label: "Dashboard", icon: Home },
   { href: "/patients", label: "Patients", icon: Database },
   { href: "/appointments", label: "Appointments", icon: Calendar },
   { href: "/symptoms", label: "Symptoms", icon: Stethoscope },
@@ -47,7 +47,7 @@ export function Sidebar() {
   return (
     <aside className="w-64 border-r bg-card flex flex-col">
       <div className="p-4 border-b">
-        <Link href="/" className="flex items-center gap-2 font-bold text-lg">
+        <Link href="/dashboard" className="flex items-center gap-2 font-bold text-lg">
           <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-primary text-primary-foreground">
             <Activity className="w-4 h-4" />
           </span>

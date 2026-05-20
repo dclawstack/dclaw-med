@@ -7,11 +7,12 @@ import { Sidebar } from "@/components/sidebar";
 import { useAuth } from "@/components/auth-provider";
 import { isPatientUser } from "@/lib/permissions";
 
-const PUBLIC_PATHS = new Set(["/login"]);
+const PUBLIC_PATHS = new Set(["/", "/login"]);
 const PORTAL_HOME = "/patient-portal";
 
 function isPatientAllowedPath(pathname: string): boolean {
   return (
+    pathname === "/" ||
     pathname === PORTAL_HOME ||
     pathname.startsWith(`${PORTAL_HOME}/`) ||
     pathname === "/settings" ||
