@@ -1,11 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
 import { healthCheck } from "@/lib/api";
-import { Circle, GitBranch, LogOut } from "lucide-react";
+import { Circle, LogOut } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
 
 export function Navbar() {
@@ -40,16 +39,6 @@ export function Navbar() {
         </Badge>
       </div>
       <div className="flex items-center gap-3">
-        <Link
-          href="https://github.com/dclawstack/dclaw-med"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Button variant="ghost" size="sm">
-            <GitBranch className="w-4 h-4 mr-1" />
-            Repo
-          </Button>
-        </Link>
         {user && (
           <>
             <div className="flex flex-col items-end leading-tight">
