@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { APP_NAME, APP_TAGLINE, GITHUB_URL } from "@/lib/tokens";
 import { useAuth } from "@/components/auth-provider";
+import { DemoSection } from "@/components/landing/demo-section";
 import {
   Activity,
   ArrowRight,
@@ -264,6 +265,9 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
+
+        {/* demo (auto-hides if backend reports demo mode off) */}
+        <DemoSection />
 
         {/* CTA */}
         <section className="bg-foreground py-20 text-background">

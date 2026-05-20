@@ -109,6 +109,34 @@ export function healthCheck(): Promise<HealthResponse> {
   return request<HealthResponse>(`${API_BASE}/health`);
 }
 
+// ---------- Demo ----------
+
+export interface DemoStatus {
+  enabled: boolean;
+  seeded: boolean;
+  patient_count: number;
+}
+
+export interface DemoSeedResponse extends DemoStatus {
+  demo_credentials: { email: string; password: string };
+}
+
+export function getDemoStatus(): Promise<DemoStatus> {
+  return request<DemoStatus>(`${API_BASE}/api/v1/demo/status`);
+}
+
+export function seedDemo(): Promise<DemoSeedResponse> {
+  return request<DemoSeedResponse>(`${API_BASE}/api/v1/demo/seed`, {
+    method: "POST",
+  });
+}
+
+export function resetDemo(): Promise<DemoStatus> {
+  return request<DemoStatus>(`${API_BASE}/api/v1/demo/reset`, {
+    method: "DELETE",
+  });
+}
+
 // ---------- Patients ----------
 
 export interface PatientCreate {

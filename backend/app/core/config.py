@@ -26,6 +26,13 @@ class Settings(BaseSettings):
     llm_model: str = "moonshotai/kimi-k2"
     openrouter_api_key: str = ""
 
+    # Public demo endpoints (POST /demo/seed, DELETE /demo/reset, GET
+    # /demo/status). Off by default — only intended for dev / demo
+    # deployments where unauthenticated landing-page visitors should be
+    # able to populate a small sample dataset. Never enable in a prod
+    # deployment that holds real patient data.
+    enable_demo_mode: bool = False
+
     @property
     def cors_origin_list(self) -> list[str]:
         """Parse comma-separated CORS origins into a list."""

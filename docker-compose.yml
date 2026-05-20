@@ -33,6 +33,9 @@ services:
       APP_ENV: dev
       LOG_LEVEL: INFO
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3004,http://localhost:3000}
+      # Public landing-page demo endpoints (/api/v1/demo/*). Default off; the
+      # local stack flips it on so the "Seed demo data" CTA actually works.
+      ENABLE_DEMO_MODE: ${ENABLE_DEMO_MODE:-true}
     ports:
       - "8092:8092"
     healthcheck:
