@@ -21,6 +21,7 @@ from typing import Iterable
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.audit_log import AuditLog
 from app.models.patient import Patient
 from app.models.prescription import Prescription
 from app.models.diagnosis import Diagnosis
@@ -149,13 +150,21 @@ async def seed_demo(db: AsyncSession) -> DemoStatus:
 async def reset_demo(db: AsyncSession) -> DemoStatus:
     """Delete every demo patient (cascades to symptoms/diagnoses/etc.) plus
     the demo clinician account. Never touches non-demo rows."""
-    # Patients first — CASCADE on the FK handles child rows.
+    # Patients first — CASCADE on the FK handles child rows (symptoms,
+    # diagnoses, prescriptions, notes, labs, appointments, allergies).
     await db.execute(
         delete(Patient).where(
             Patient.medical_record_number.startswith(DEMO_MRN_PREFIX)
         )
     )
-    # Demo user is independent of the patient delete (it's a clinician).
+    # The audit_logs FK is ON DELETE RESTRICT (real users' history is
+    # supposed to be tamper-evident), so we must hand-clear the demo
+    # user's audit rows before deleting the user. Scoped by user_id so
+    # real users' audits are untouched.
+    demo_user_id_subq = select(User.id).where(User.email == DEMO_USER_EMAIL)
+    await db.execute(
+        delete(AuditLog).where(AuditLog.user_id.in_(demo_user_id_subq))
+    )
     await db.execute(delete(User).where(User.email == DEMO_USER_EMAIL))
     await db.commit()
     return await get_demo_status(db, enabled=True)
