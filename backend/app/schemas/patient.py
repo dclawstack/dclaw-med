@@ -24,9 +24,10 @@ class PatientCreate(PatientBase):
 class PatientUpdate(BaseModel):
     """Schema for updating a patient."""
 
-    name: str | None = None
+    name: str | None = Field(default=None, min_length=1, max_length=255)
     date_of_birth: date | None = None
-    gender: str | None = None
+    gender: str | None = Field(default=None, pattern="^(male|female|other|unknown)$")
+    medical_record_number: str | None = Field(default=None, min_length=1, max_length=100)
     contact_info: dict[str, Any] | None = None
 
 

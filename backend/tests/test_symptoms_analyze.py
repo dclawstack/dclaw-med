@@ -114,12 +114,28 @@ async def test_analyze_respects_max_results(
 
 @pytest.mark.asyncio
 async def test_analyze_falls_back_when_llm_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
     client: AsyncClient,
     doctor_headers: dict[str, str],
     patient_id: str,
 ) -> None:
-    """With no API key set (the default in tests), the LLM is mocked-as-
-    unavailable and the keyword matcher serves the request."""
+    """When ``json_completion`` raises ``LLMUnavailable`` (mocked/
+    unconfigured backend), the keyword matcher serves the request.
+
+    We force the unavailable branch explicitly rather than relying on
+    the ``OPENROUTER_API_KEY`` being unset — that assumption broke once
+    a developer dropped a real key into ``.env`` for manual testing,
+    causing this test to silently make a real LLM call."""
+    from app.services.llm import LLMUnavailable
+
+    async def unavailable(**_: Any) -> dict[str, Any]:
+        raise LLMUnavailable("forced unavailable for test")
+
+    monkeypatch.setattr(
+        "app.services.symptom_analyzer.json_completion",
+        unavailable,
+    )
+
     res = await client.post(
         ANALYZE,
         headers=doctor_headers,
