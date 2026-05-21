@@ -145,6 +145,8 @@ class PatientRepository:
             patient.date_of_birth = data.date_of_birth
         if data.gender is not None:
             patient.gender = data.gender
+        if data.medical_record_number is not None:
+            patient.medical_record_number = data.medical_record_number
         if data.contact_info is not None:
             patient.contact_info = data.contact_info
 

@@ -30,3 +30,13 @@ backend/dev.db
 backend/.venv/
 backend/.pytest_cache/
 backend/**/__pycache__/
+
+# TestSprite scratch (rejected during one session; ignore if it ever
+# gets re-bootstrapped locally).
+.testsprite/
+testsprite_tests/
+
+# Playwright e2e — install per-machine, never commit installs/results.
+tests/e2e/node_modules/
+tests/e2e/playwright-report/
+tests/e2e/test-results/

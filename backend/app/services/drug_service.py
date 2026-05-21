@@ -6,8 +6,11 @@ from app.schemas.prescription import (
     DrugInteractionResponse,
 )
 
-# Known interaction pairs: (drug_a_lower, drug_b_lower) -> interaction
-KNOWN_INTERACTIONS = {
+# Known interaction pairs: (drug_a_lower, drug_b_lower) -> interaction.
+# Keys are normalized to alphabetical order at module load (see
+# ``_normalize_keys`` below) so the lookup in ``check_interactions``
+# can always use ``tuple(sorted(...))``.
+_RAW_INTERACTIONS = {
     ("warfarin", "aspirin"): DrugInteraction(
         drug_a="Warfarin",
         drug_b="Aspirin",
@@ -112,6 +115,13 @@ KNOWN_INTERACTIONS = {
         mechanism="Combined serotonergic activity",
         recommendation="Avoid concurrent use. Washout period required.",
     ),
+}
+
+# Sort each key alphabetically so ``tuple(sorted([a, b]))`` lookups in
+# ``check_interactions`` match regardless of the order the pair was
+# typed in the dict literal above.
+KNOWN_INTERACTIONS = {
+    tuple(sorted(pair)): interaction for pair, interaction in _RAW_INTERACTIONS.items()
 }
 
 
