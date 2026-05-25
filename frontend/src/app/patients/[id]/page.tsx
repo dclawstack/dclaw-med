@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
   getPatient, updatePatient,
+  getPatientHistory,
   listSymptoms, createSymptom, deleteSymptom,
   listDiagnoses, createDiagnosis, deleteDiagnosis,
   listPrescriptions, createPrescription, deletePrescription,
@@ -12,8 +13,9 @@ import {
   listLabResults, createLabResult, deleteLabResult,
   listAllergies, createAllergy, deleteAllergy,
   fetchPatientReport,
-  PatientResponse, SymptomResponse, DiagnosisResponse, PrescriptionResponse, ClinicalNoteResponse, LabResultResponse,
-  AllergyResponse, AllergyWarning,
+  analyzeSymptoms,
+  PatientResponse, PatientHistoryEvent, SymptomResponse, DiagnosisResponse, PrescriptionResponse, ClinicalNoteResponse, LabResultResponse,
+  AllergyResponse, AllergyWarning, SymptomAnalysisResponse,
 } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +28,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Trash2, Save, User, Calendar, Stethoscope, Pill, FileText, ClipboardList, FlaskConical, AlertTriangle, ShieldAlert, FileDown } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Save, User, Calendar, Stethoscope, Pill, FileText, ClipboardList, FlaskConical, AlertTriangle, ShieldAlert, FileDown, Activity, Sparkles } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
 import { can } from "@/lib/permissions";
 
@@ -47,6 +49,7 @@ export default function PatientDetailPage() {
   const [notes, setNotes] = useState<ClinicalNoteResponse[]>([]);
   const [labResults, setLabResults] = useState<LabResultResponse[]>([]);
   const [allergies, setAllergies] = useState<AllergyResponse[]>([]);
+  const [timeline, setTimeline] = useState<PatientHistoryEvent[]>([]);
 
   useEffect(() => {
     if (!id) return;
@@ -59,8 +62,9 @@ export default function PatientDetailPage() {
       listNotes(id),
       listLabResults(id),
       listAllergies(id),
+      getPatientHistory(id),
     ])
-      .then(([p, s, d, rx, n, l, a]) => {
+      .then(([p, s, d, rx, n, l, a, h]) => {
         setPatient(p);
         setEditName(p.name);
         setEditDob(p.date_of_birth);
@@ -71,6 +75,7 @@ export default function PatientDetailPage() {
         setNotes(n);
         setLabResults(l);
         setAllergies(a);
+        setTimeline(h.timeline);
       })
       .catch((err) => toast.error("Failed to load patient", { description: err.message }))
       .finally(() => setLoading(false));
@@ -218,6 +223,7 @@ export default function PatientDetailPage() {
           <TabsTrigger value="notes"><FileText className="w-3 h-3 mr-1" />Notes ({notes.length})</TabsTrigger>
           <TabsTrigger value="labs"><FlaskConical className="w-3 h-3 mr-1" />Lab Results ({labResults.length})</TabsTrigger>
           <TabsTrigger value="allergies"><AlertTriangle className="w-3 h-3 mr-1" />Allergies ({allergies.length})</TabsTrigger>
+          <TabsTrigger value="history"><Activity className="w-3 h-3 mr-1" />History ({timeline.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="symptoms" className="space-y-4">
@@ -238,8 +244,40 @@ export default function PatientDetailPage() {
         <TabsContent value="allergies" className="space-y-4">
           <AllergyTab patientId={patient.id} allergies={allergies} onChange={setAllergies} />
         </TabsContent>
+        <TabsContent value="history" className="space-y-4">
+          <HistoryTab timeline={timeline} />
+        </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+// ─── History Tab ─────────────────────────────────────────
+
+function HistoryTab({ timeline }: { timeline: PatientHistoryEvent[] }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-sm">History timeline</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {timeline.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No history events recorded.</p>
+        ) : (
+          <ol className="relative border-l border-border pl-6 space-y-4">
+            {timeline.map((ev, i) => (
+              <li key={`${ev.date}-${i}`} className="relative">
+                <span className="absolute -left-[31px] top-1 inline-block w-3 h-3 rounded-full bg-primary ring-4 ring-background" />
+                <p className="text-xs font-mono text-muted-foreground">
+                  {new Date(ev.date).toLocaleString()} · {ev.type}
+                </p>
+                <p className="text-sm">{ev.description}</p>
+              </li>
+            ))}
+          </ol>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -248,10 +286,13 @@ export default function PatientDetailPage() {
 function SymptomTab({ patientId, symptoms, onChange }: { patientId: string; symptoms: SymptomResponse[]; onChange: (s: SymptomResponse[]) => void }) {
   const { user } = useAuth();
   const canWrite = can.writeSymptom(user);
+  const canAnalyze = can.useClinicalTool(user);
   const [open, setOpen] = useState(false);
   const [desc, setDesc] = useState("");
   const [severity, setSeverity] = useState("5");
   const [system, setSystem] = useState("");
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysis, setAnalysis] = useState<SymptomAnalysisResponse | null>(null);
 
   async function handleAdd() {
     try {
@@ -269,26 +310,73 @@ function SymptomTab({ patientId, symptoms, onChange }: { patientId: string; symp
     catch (err) { toast.error("Failed to remove symptom"); }
   }
 
+  async function handleAnalyze() {
+    // Use the in-progress dialog description if there is one, otherwise the
+    // most recently recorded symptom — so a clinician can either analyze
+    // what they're about to enter or analyze the latest captured complaint.
+    const inputText = desc.trim() || symptoms[0]?.description || "";
+    if (!inputText) {
+      toast.info("Add a symptom (or enter one above) to analyze.");
+      return;
+    }
+    setAnalyzing(true);
+    try {
+      const res = await analyzeSymptoms({
+        patient_id: patientId,
+        symptoms: inputText,
+        max_results: 5,
+      });
+      setAnalysis(res);
+      toast.success("Analysis complete", {
+        description: `${res.differential_diagnoses.length} differentials · urgency ${res.urgency_level}`,
+      });
+    } catch (err) {
+      toast.error("Analysis failed", { description: err instanceof Error ? err.message : "" });
+    } finally {
+      setAnalyzing(false);
+    }
+  }
+
+  const urgencyClass: Record<string, string> = {
+    low: "bg-emerald-100 text-emerald-800 border-emerald-300",
+    medium: "bg-amber-100 text-amber-800 border-amber-300",
+    high: "bg-orange-100 text-orange-800 border-orange-300",
+    critical: "bg-red-100 text-red-800 border-red-300",
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-sm">Symptoms</CardTitle>
-        {canWrite && (
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger><Button size="sm"><Plus className="w-3 h-3 mr-1" />Add</Button></DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>Add Symptom</DialogTitle></DialogHeader>
-              <div className="space-y-3 py-2">
-                <div className="space-y-1"><Label>Description</Label><Textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={2} /></div>
-                <div className="space-y-1"><Label>Severity (1-10)</Label><Input type="number" min={1} max={10} value={severity} onChange={(e) => setSeverity(e.target.value)} /></div>
-                <div className="space-y-1"><Label>Body System</Label><Input value={system} onChange={(e) => setSystem(e.target.value)} placeholder="e.g. Cardiovascular" /></div>
-              </div>
-              <DialogFooter><Button onClick={handleAdd} disabled={!desc.trim()}>Add</Button></DialogFooter>
-            </DialogContent>
-          </Dialog>
-        )}
+        <div className="flex items-center gap-2">
+          {canAnalyze && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleAnalyze}
+              disabled={analyzing || (!desc.trim() && symptoms.length === 0)}
+            >
+              <Sparkles className="w-3 h-3 mr-1" />
+              {analyzing ? "Analyzing…" : "Analyze"}
+            </Button>
+          )}
+          {canWrite && (
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger><Button size="sm"><Plus className="w-3 h-3 mr-1" />Add</Button></DialogTrigger>
+              <DialogContent>
+                <DialogHeader><DialogTitle>Add Symptom</DialogTitle></DialogHeader>
+                <div className="space-y-3 py-2">
+                  <div className="space-y-1"><Label>Description</Label><Textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={2} /></div>
+                  <div className="space-y-1"><Label>Severity (1-10)</Label><Input type="number" min={1} max={10} value={severity} onChange={(e) => setSeverity(e.target.value)} /></div>
+                  <div className="space-y-1"><Label>Body System</Label><Input value={system} onChange={(e) => setSystem(e.target.value)} placeholder="e.g. Cardiovascular" /></div>
+                </div>
+                <DialogFooter><Button onClick={handleAdd} disabled={!desc.trim()}>Add</Button></DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
       </CardHeader>
-      <CardContent className="space-y-2">
+      <CardContent className="space-y-3">
         {symptoms.length === 0 ? <p className="text-sm text-muted-foreground">No symptoms recorded.</p> : symptoms.map((s) => (
           <div key={s.id} className="flex items-center justify-between border rounded-lg p-3">
             <div>
@@ -300,6 +388,44 @@ function SymptomTab({ patientId, symptoms, onChange }: { patientId: string; symp
             )}
           </div>
         ))}
+
+        {analysis && (
+          <div className="mt-2 rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-primary" />
+                <span className="text-sm font-semibold">Differential diagnoses</span>
+                <Badge
+                  className={urgencyClass[analysis.urgency_level] ?? urgencyClass.low}
+                  variant="outline"
+                >
+                  {analysis.urgency_level.toUpperCase()} URGENCY
+                </Badge>
+              </div>
+              <Button size="sm" variant="ghost" onClick={() => setAnalysis(null)}>Dismiss</Button>
+            </div>
+            <ul className="space-y-2">
+              {analysis.differential_diagnoses.map((d, i) => (
+                <li key={i} className="border rounded-md p-3 bg-background">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-medium">
+                      {i + 1}. {d.condition} <Badge variant="outline" className="ml-1">{d.icd10_code}</Badge>
+                    </span>
+                    <Badge variant={d.confidence > 0.7 ? "default" : "secondary"}>
+                      {(d.confidence * 100).toFixed(0)}%
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">{d.reasoning}</p>
+                </li>
+              ))}
+            </ul>
+            {analysis.recommended_tests.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Recommended tests: {analysis.recommended_tests.join(", ")}
+              </p>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
