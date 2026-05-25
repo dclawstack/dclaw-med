@@ -30,6 +30,8 @@ _METHOD_TO_ACTION = {
 
 _MED_PREFIX = "/api/v1/med/"
 _PORTAL_PREFIX = "/api/v1/patient-portal/"
+_AUTH_USERS_PREFIX = "/api/v1/auth/users"
+_AUTH_REGISTER_PATH = "/api/v1/auth/register"
 
 # Map the trailing path segment of a portal route to the entity_type stored
 # on the audit row, so a patient reading their own labs becomes a recognizable
@@ -91,6 +93,33 @@ def _parse_portal_path(path: str) -> tuple[Optional[str], Optional[UUID]]:
     return _PORTAL_ENTITY.get(segment), None
 
 
+def _parse_users_path(path: str, method: str) -> tuple[Optional[str], Optional[UUID]]:
+    """Return (entity_type, entity_id) for admin user-management routes.
+
+    Covers POST /auth/register (create) and the /auth/users surface
+    (list/link/unlink). Reads (GET) intentionally aren't audited — there's
+    no PHI in a user listing, and admins paginate this constantly.
+    """
+    if path == _AUTH_REGISTER_PATH and method == "POST":
+        return "users", None
+    if path.startswith(_AUTH_USERS_PREFIX):
+        # GET /auth/users is a high-volume admin browse — don't audit reads.
+        if method == "GET":
+            return None, None
+        rest = path[len(_AUTH_USERS_PREFIX):].strip("/")
+        if not rest:
+            return "users", None
+        # /auth/users/{user_id}/patient → entity_id = the user being modified.
+        parts = rest.split("/")
+        if _UUID_RE.match(parts[0]):
+            try:
+                return "users", UUID(parts[0])
+            except ValueError:
+                pass
+        return "users", None
+    return None, None
+
+
 class AuditMiddleware(BaseHTTPMiddleware):
     """Append-only access log for /api/v1/med/* and /api/v1/patient-portal/*.
 
@@ -107,6 +136,8 @@ class AuditMiddleware(BaseHTTPMiddleware):
             entity_type, entity_id = _parse_med_path(path)
         elif path.startswith(_PORTAL_PREFIX):
             entity_type, entity_id = _parse_portal_path(path)
+        elif path == _AUTH_REGISTER_PATH or path.startswith(_AUTH_USERS_PREFIX):
+            entity_type, entity_id = _parse_users_path(path, request.method)
         else:
             return response
 

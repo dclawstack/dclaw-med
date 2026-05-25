@@ -207,6 +207,21 @@ export function deletePatient(id: string): Promise<void> {
   return request<void>(`${MED}/patients/${id}`, { method: "DELETE" });
 }
 
+export interface PatientHistoryEvent {
+  type: string;
+  date: string;
+  description: string;
+}
+
+export interface PatientHistory {
+  patient_id: string;
+  timeline: PatientHistoryEvent[];
+}
+
+export function getPatientHistory(id: string): Promise<PatientHistory> {
+  return request<PatientHistory>(`${MED}/patients/${id}/history`);
+}
+
 export async function fetchPatientReport(id: string): Promise<Blob> {
   const token = getToken();
   const res = await fetch(`${MED}/patients/${id}/report`, {

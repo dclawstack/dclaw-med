@@ -28,14 +28,26 @@ import {
 import { toast } from "sonner";
 import { Lock, ShieldCheck } from "lucide-react";
 
+// Keep in sync with the entity_type values the audit middleware writes
+// (app/core/audit_middleware.py). The list reflects the actual stored
+// strings, including the inconsistency between /med/lab-results (hyphen,
+// used as the path segment) and the patient-portal's lab_results
+// (underscore, mapped explicitly).
 const ENTITY_OPTIONS = [
   "patients",
+  "patient", // portal: /patient-portal/me
   "symptoms",
   "diagnoses",
   "prescriptions",
   "notes",
+  "lab-results",
+  "lab_results", // portal-side spelling
+  "appointments",
+  "allergies",
+  "fhir",
   "icd10",
   "drug",
+  "users", // /auth/register + /auth/users/* admin actions
 ];
 const ACTION_OPTIONS = ["create", "read", "update", "delete"];
 
