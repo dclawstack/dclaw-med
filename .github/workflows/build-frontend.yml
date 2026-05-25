@@ -6,11 +6,11 @@ on:
     paths:
       - "frontend/**"
       - ".github/workflows/build-frontend.yml"
+  # Run on every PR to main regardless of which paths changed — k8s /
+  # docs-only PRs were silently skipping the image build and we want
+  # a green CI signal on every PR before merge.
   pull_request:
     branches: [main]
-    paths:
-      - "frontend/**"
-      - ".github/workflows/build-frontend.yml"
   workflow_dispatch:
 
 env:
