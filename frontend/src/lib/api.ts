@@ -98,17 +98,6 @@ export function listProviders(): Promise<Provider[]> {
   return request<Provider[]>(`${AUTH}/providers`);
 }
 
-// ---------- Health ----------
-
-export interface HealthResponse {
-  status: string;
-  version: string;
-}
-
-export function healthCheck(): Promise<HealthResponse> {
-  return request<HealthResponse>(`${API_BASE}/health`);
-}
-
 // ---------- Demo ----------
 
 export interface DemoStatus {
