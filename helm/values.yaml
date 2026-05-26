@@ -1,0 +1,81 @@
+# Default values = DEV / local cluster. Reproduces the live dclaw-core deployment.
+# Plain `helm install dclaw-med ./helm -n dclaw-core` brings the app up.
+# For the cloud/GHCR deployment, override with: -f values-prod.yaml
+#
+# Note: med's backend uses INLINE env (incl. DATABASE_URL/JWT_SECRET) rather than a
+# Secret, matching the live deployment. `secret` is therefore disabled (null).
+
+nameOverride: ""
+
+backend:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: docker.io/library/dclaw-med-backend
+    tag: local
+    pullPolicy: Never
+  containerPort: 8092
+  service:
+    type: ClusterIP
+    port: 8092
+  env:
+    DATABASE_URL: postgresql+asyncpg://postgres:postgres@dclaw-shared-postgres:5432/dclaw_med
+    APP_ENV: production
+    CORS_ORIGINS: "*"
+    ENABLE_DEMO_MODE: "true"
+    JWT_SECRET: 4c77171ab195e43566ba846cb393be5d0134e4120a1433713645b81d2c3cb78e
+  livenessProbe:
+    path: /health
+    initialDelaySeconds: 20
+    periodSeconds: 30
+  readinessProbe:
+    path: /health
+    initialDelaySeconds: 15
+    periodSeconds: 10
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+frontend:
+  enabled: true
+  replicaCount: 1
+  # Live frontend Deployment is named "dclaw-med" (not "-frontend").
+  deploymentName: dclaw-med
+  image:
+    repository: docker.io/library/dclaw-med
+    tag: local
+    pullPolicy: Never
+  containerPort: 3004
+  service:
+    type: NodePort
+    port: 3004
+    nodePort: 30004
+  env:
+    PORT: "3004"
+    HOSTNAME: 0.0.0.0
+    BACKEND_URL: http://dclaw-med-backend:8092
+  readinessProbe:
+    path: /
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# med stores backend config inline (see note above), so no app Secret is created.
+secret: null
+
+ingress:
+  enabled: false
+  className: nginx
+  annotations: {}
+  host: ""
+  tls: []
