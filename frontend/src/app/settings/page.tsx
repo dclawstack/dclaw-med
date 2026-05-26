@@ -4,8 +4,25 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { APP_NAME } from "@/lib/tokens";
+import { useAuth } from "@/components/auth-provider";
+import { can } from "@/lib/permissions";
+import { Lock } from "lucide-react";
 
 export default function SettingsPage() {
+  const { user } = useAuth();
+  if (!can.viewAppSettings(user)) {
+    return (
+      <div className="max-w-3xl mx-auto">
+        <Card>
+          <CardContent className="p-8 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">
+            <Lock className="w-6 h-6" />
+            Settings are restricted to administrators.
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
       <div className="space-y-1">
