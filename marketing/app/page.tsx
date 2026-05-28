@@ -1,4 +1,5 @@
 import { CTA } from "@/components/CTA";
+import { Demo } from "@/components/Demo";
 import { Features } from "@/components/Features";
 import { Footer } from "@/components/Footer";
 import { Hero } from "@/components/Hero";
@@ -18,6 +19,7 @@ export default function HomePage() {
         <Features />
         <HowItWorks />
         <Stack />
+        <Demo />
         <Roadmap />
         <CTA />
       </main>

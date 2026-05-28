@@ -1,7 +1,7 @@
 const layers = [
   {
     layer: "Frontend",
-    items: ["Next.js 14 App Router", "TypeScript", "Tailwind CSS", "shadcn/ui"],
+    items: ["Next.js 16 App Router", "TypeScript", "Tailwind CSS", "shadcn/ui"],
   },
   {
     layer: "Backend",
@@ -24,8 +24,8 @@ const layers = [
   {
     layer: "AI / LLM",
     items: [
-      "OpenRouter gateway",
-      "Kimi K2 / Claude / GPT",
+      "OpenAI-compatible (OpenRouter, Ollama, vLLM)",
+      "Kimi K2 / Claude / GPT / Llama",
       "Structured JSON output",
       "Evidence-cited",
     ],
