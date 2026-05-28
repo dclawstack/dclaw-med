@@ -15,6 +15,10 @@ export default defineConfig({
   workers: 1,
   retries: 0,
   timeout: 60_000,
+  // Specs tagged @llm hit the local LLM (Ollama 3B today) and take
+  // minutes per call. Skipped by default so `npx playwright test`
+  // stays fast; run with RUN_LLM_TESTS=1 to include them.
+  grepInvert: process.env.RUN_LLM_TESTS ? undefined : /@llm/,
   reporter: process.env.CI ? "github" : "list",
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3004",
