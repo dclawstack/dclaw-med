@@ -26,6 +26,11 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    # Let the container talk to host services (Ollama on the host's
+    # 11434). Linux Docker requires the explicit host-gateway alias;
+    # Docker Desktop on Mac/Windows resolves host.docker.internal natively.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/dclaw_med
       API_HOST: 0.0.0.0
@@ -36,6 +41,13 @@ services:
       # Public landing-page demo endpoints (/api/v1/demo/*). Default off; the
       # local stack flips it on so the "Seed demo data" CTA actually works.
       ENABLE_DEMO_MODE: ${ENABLE_DEMO_MODE:-true}
+      # LLM provider — defaults to OpenRouter, but env can flip the whole
+      # stack to a local Ollama (or any OpenAI-compatible server) without
+      # touching code. See backend/app/core/config.py for the full list.
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://openrouter.ai/api/v1}
+      LLM_MODEL: ${LLM_MODEL:-moonshotai/kimi-k2}
+      LLM_TIMEOUT_SECONDS: ${LLM_TIMEOUT_SECONDS:-30}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
     ports:
       - "8092:8092"
     healthcheck:
