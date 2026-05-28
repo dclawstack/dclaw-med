@@ -25,6 +25,16 @@ class Settings(BaseSettings):
     llm_provider: str = "openrouter"
     llm_model: str = "moonshotai/kimi-k2"
     openrouter_api_key: str = ""
+    # OpenAI-compatible base URL. Defaults to OpenRouter; set to e.g.
+    # http://host.docker.internal:11434/v1 (or http://localhost:11434/v1
+    # outside Docker) to point at a local Ollama. Any provider that
+    # implements POST {base}/chat/completions works without code changes.
+    llm_base_url: str = "https://openrouter.ai/api/v1"
+    # Per-call timeout in seconds for the LLM HTTP request. Local Ollama
+    # with a 3B model generating structured JSON can easily exceed 30s
+    # under load, so this is overridable. Cloud providers usually answer
+    # in 2-10s so the default stays low.
+    llm_timeout_seconds: float = 30.0
 
     # Public demo endpoints (POST /demo/seed, DELETE /demo/reset, GET
     # /demo/status). Off by default — only intended for dev / demo
