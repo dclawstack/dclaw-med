@@ -9,7 +9,7 @@ const features: Feature[] = [
   {
     title: "Evidence-cited differentials",
     badge: "v1.3 · live",
-    body: "Real LLM via OpenRouter (Kimi K2, Claude, GPT). Every diagnosis ships with ICD-10, confidence, grounded reasoning, and citations. Always ≥3 differentials — primary-care reasoning is differential.",
+    body: "Real LLM behind a typed schema — OpenRouter / OpenAI / a local Ollama all drop in the same way. Every diagnosis ships with ICD-10, confidence, grounded reasoning, and citations. Always ≥3 differentials — primary-care reasoning is differential.",
     icon: <IconStethoscope />,
   },
   {
