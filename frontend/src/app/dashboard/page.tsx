@@ -31,6 +31,7 @@ import {
 export default function DashboardPage() {
   const { user } = useAuth();
   const isAdmin = can.viewAudit(user);
+  const showSystemStatus = can.viewAppSettings(user);
   const [patients, setPatients] = useState<PatientResponse[]>([]);
   const [prescriptions, setPrescriptions] = useState<PrescriptionResponse[]>([]);
   const [notes, setNotes] = useState<ClinicalNoteResponse[]>([]);
@@ -189,15 +190,17 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader><CardTitle className="text-sm">System Status</CardTitle></CardHeader>
-        <CardContent className="space-y-2 text-sm">
-          <div className="flex justify-between"><span className="text-muted-foreground">Backend API</span><Badge variant="secondary">Port 8092</Badge></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">Frontend</span><Badge variant="secondary">Port 3004</Badge></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">Database</span><Badge variant="secondary">PostgreSQL 16</Badge></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">LLM Gateway</span><Badge variant="secondary">OpenRouter</Badge></div>
-        </CardContent>
-      </Card>
+      {showSystemStatus && (
+        <Card>
+          <CardHeader><CardTitle className="text-sm">System Status</CardTitle></CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="flex justify-between"><span className="text-muted-foreground">Backend API</span><Badge variant="secondary">Port 8092</Badge></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Frontend</span><Badge variant="secondary">Port 3004</Badge></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Database</span><Badge variant="secondary">PostgreSQL 16</Badge></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">LLM Gateway</span><Badge variant="secondary">OpenRouter</Badge></div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

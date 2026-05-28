@@ -41,6 +41,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const { user } = useAuth();
   const showAudit = can.viewAudit(user);
+  const showSettings = can.viewAppSettings(user);
   const isPatient = isPatientUser(user);
   const navItems = isPatient ? patientNav : clinicianNav;
 
@@ -106,20 +107,22 @@ export function Sidebar() {
           </>
         )}
       </nav>
-      <div className="p-3 border-t">
-        <Link
-          href="/settings"
-          className={cn(
-            "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-            pathname === "/settings"
-              ? "bg-primary/10 text-primary"
-              : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-          )}
-        >
-          <Settings className="w-4 h-4" />
-          Settings
-        </Link>
-      </div>
+      {showSettings && (
+        <div className="p-3 border-t">
+          <Link
+            href="/settings"
+            className={cn(
+              "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+              pathname === "/settings"
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            )}
+          >
+            <Settings className="w-4 h-4" />
+            Settings
+          </Link>
+        </div>
+      )}
     </aside>
   );
 }

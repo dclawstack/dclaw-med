@@ -28,4 +28,8 @@ export const can = {
   writeAllergy: (u: RoleHolder) => hasRole(u, ["admin", "doctor", "nurse"]),
   useClinicalTool: (u: RoleHolder) => hasRole(u, ["admin", "doctor", "nurse"]),
   viewAudit: (u: RoleHolder) => hasRole(u, ["admin"]),
+  // App / infra info (API base URL, ports, version, environment). Not
+  // useful or appropriate for clinicians, nurses, receptionists, or
+  // patients — admin-only.
+  viewAppSettings: (u: RoleHolder) => hasRole(u, ["admin"]),
 };
