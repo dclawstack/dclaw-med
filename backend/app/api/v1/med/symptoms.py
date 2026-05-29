@@ -3,11 +3,13 @@
 from collections.abc import Sequence
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import CLINICAL_TOOL, CLINICIAN_READ, SYMPTOM_WRITE
+from app.core.config import settings
 from app.core.database import get_db
+from app.core.rate_limit import limiter
 from app.repositories.symptom_repo import SymptomRepository
 from app.schemas.symptom import (
     SymptomAnalysisRequest,
@@ -26,11 +28,13 @@ router = APIRouter()
     response_model=SymptomAnalysisResponse,
     dependencies=[CLINICAL_TOOL],
 )
+@limiter.limit(settings.rate_limit_analyze)
 async def analyze_symptoms_endpoint(
-    request: SymptomAnalysisRequest,
+    request: Request,
+    payload: SymptomAnalysisRequest,
 ) -> SymptomAnalysisResponse:
     """Analyze symptoms and return differential diagnosis."""
-    return await analyze_symptoms(request)
+    return await analyze_symptoms(payload)
 
 
 @router.get("", response_model=list[SymptomResponse], dependencies=[CLINICIAN_READ])

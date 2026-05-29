@@ -2,12 +2,14 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import get_current_user, require_role
+from app.core.config import settings
 from app.core.database import get_db
+from app.core.rate_limit import limiter
 from app.core.security import create_access_token, verify_password
 from app.models.user import User
 from app.repositories.patient_repo import PatientRepository
@@ -98,7 +100,9 @@ async def link_user_to_patient(
 
 
 @router.post("/login", response_model=Token)
+@limiter.limit(settings.rate_limit_auth)
 async def login(
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_db),
 ) -> Token:
