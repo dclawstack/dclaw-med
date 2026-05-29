@@ -11,7 +11,12 @@ from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async
 from app.api.main import app
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.rate_limit import limiter
 from app.models.base import Base
+
+# Rate limiting is off by default in the suite so tests can hammer endpoints
+# freely; test_rate_limit.py re-enables it for its own cases.
+limiter.enabled = False
 
 TEST_DB_NAME = "dclaw_med_test"
 TEST_DB_URL = settings.database_url.replace("/dclaw_med", f"/{TEST_DB_NAME}")

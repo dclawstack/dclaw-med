@@ -36,6 +36,15 @@ class Settings(BaseSettings):
     # in 2-10s so the default stays low.
     llm_timeout_seconds: float = 30.0
 
+    # Rate limiting (per client IP, in-memory). ``rate_limit_default`` guards
+    # every route; the auth/analyze limits are tighter because login is the
+    # unauthenticated brute-force target and symptom analysis is an expensive
+    # LLM call. Values use slowapi syntax, e.g. "10/minute" or "100/hour".
+    rate_limit_enabled: bool = True
+    rate_limit_default: str = "200/minute"
+    rate_limit_auth: str = "10/minute"
+    rate_limit_analyze: str = "30/minute"
+
     # Public demo endpoints (POST /demo/seed, DELETE /demo/reset, GET
     # /demo/status). Off by default — only intended for dev / demo
     # deployments where unauthenticated landing-page visitors should be

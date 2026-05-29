@@ -4,12 +4,14 @@ from fastapi import APIRouter
 from sqlalchemy import text
 
 from app.core.database import engine
+from app.core.rate_limit import limiter
 from app.schemas.common import HealthResponse
 
 router = APIRouter()
 
 
 @router.get("/health", response_model=HealthResponse)
+@limiter.exempt
 async def health_check() -> HealthResponse:
     """Return health status. Pings the DB so unhealthy pods get rescheduled."""
     db_status = "ok"

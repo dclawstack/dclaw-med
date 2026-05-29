@@ -4,6 +4,9 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from app.api.routes import health
 from app.api.v1 import audit as audit_router
@@ -15,6 +18,7 @@ from app.api.v1.med import router as med_router
 from app.core.audit_middleware import AuditMiddleware
 from app.core.config import settings
 from app.core.logging import configure_logging
+from app.core.rate_limit import limiter
 from app.core.request_id import RequestIDMiddleware
 
 configure_logging()
@@ -46,6 +50,11 @@ app = FastAPI(
 from app.core.database import engine as _engine
 app.state.engine = _engine
 
+# Rate limiting. SlowAPIMiddleware applies the default limit to every route;
+# per-route @limiter.limit decorators tighten it on sensitive endpoints.
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
@@ -55,6 +64,7 @@ app.add_middleware(
 )
 app.add_middleware(AuditMiddleware)
 app.add_middleware(RequestIDMiddleware)
+app.add_middleware(SlowAPIMiddleware)
 
 app.include_router(health.router, tags=["Health"])
 app.include_router(auth_router.router, prefix="/api/v1/auth", tags=["Auth"])
