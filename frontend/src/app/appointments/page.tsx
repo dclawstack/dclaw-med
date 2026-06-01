@@ -96,6 +96,20 @@ export default function AppointmentsPage() {
 
   async function handleCreate(e: FormEvent) {
     e.preventDefault();
+    // Validate on submit instead of silently disabling the button — a missing
+    // provider or an incomplete date/time otherwise leaves the user with a
+    // dead "Schedule" button and no idea why.
+    const missing = !patientId
+      ? "Select a patient."
+      : !providerId
+        ? "Select a provider."
+        : !scheduledAt
+          ? "Choose a date and time."
+          : null;
+    if (missing) {
+      toast.error("Can't schedule yet", { description: missing });
+      return;
+    }
     setSubmitting(true);
     try {
       const created = await createAppointment({
@@ -226,10 +240,7 @@ export default function AppointmentsPage() {
                   <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
                 </div>
                 <DialogFooter>
-                  <Button
-                    type="submit"
-                    disabled={!patientId || !providerId || !scheduledAt || submitting}
-                  >
+                  <Button type="submit" disabled={submitting}>
                     {submitting ? "Scheduling…" : "Schedule"}
                   </Button>
                 </DialogFooter>
